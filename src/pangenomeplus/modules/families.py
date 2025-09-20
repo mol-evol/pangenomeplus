@@ -15,7 +15,7 @@ def assign_gene_families(
     cluster_results: Dict[FeatureType, Dict[str, List[str]]],
     id_mappings: Dict[str, str],
     output_dir: Path,
-    family_prefix: str = "FAM"
+    family_prefix: str = ""
 ) -> Tuple[Dict[str, str], Dict[str, List[Dict[str, Any]]]]:
     """
     Create gene families from cluster assignments.
@@ -43,7 +43,10 @@ def assign_gene_families(
 
         for representative, members in clusters.items():
             # Create family ID
-            family_id = f"{family_prefix}_{family_counter:06d}"
+            if family_prefix:
+                family_id = f"{family_prefix}_{family_counter:06d}"
+            else:
+                family_id = f"{family_counter:06d}"
 
             # Record family members
             family_members[family_id] = []

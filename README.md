@@ -12,13 +12,13 @@ PanGenomePlus is a streamlined pangenome analysis pipeline that leverages MMseqs
 
 ### Key Features
 
-- **🚀 High Performance**: Built on MMseqs2 easy-cluster for optimal scaling from 2 to 500,000+ sequences
-- **🧬 Multi-Feature Analysis**: Analyzes protein-coding genes, tRNA, rRNA, CRISPR arrays, and intergenic regions
-- **🤖 AI-Ready Outputs**: Transformer format optimized for machine learning applications
-- **📊 Multiple Output Formats**: Transformer, presence/absence matrices, Roary-compatible, and FASTA
-- **⚡ GPU Acceleration**: Optional GPU support for large-scale analyses
-- **🔧 Modular Architecture**: Clean separation of annotation → clustering → families → output
-- **📋 Professional Quality**: 100% function documentation and PEP 8 compliance
+- **High Performance**: Built on MMseqs2 easy-cluster for optimal scaling from 2 to 500,000+ sequences
+- **Multi-Feature Analysis**: Analyzes protein-coding genes, tRNA, rRNA, CRISPR arrays, and intergenic regions
+- **AI-Ready Outputs**: Transformer format optimized for machine learning applications
+- **Multiple Output Formats**: Transformer, presence/absence matrices, Roary-compatible, and FASTA
+- **GPU Acceleration**: Optional GPU support for large-scale analyses
+- **Modular Architecture**: Clean separation of annotation -> clustering -> families -> output
+- **Professional Quality**: 100% function documentation and PEP 8 compliance
 
 ## Quick Start
 
@@ -194,8 +194,8 @@ C_  = CRISPR arrays
 S_  = Singleton genes
 
 # Example output:
-genome_A    P_FAM_000001 T_FAM_000002 I_INT_000001 R_FAM_000003
-genome_B    P_FAM_000001 I_INT_000002 C_FAM_000004 P_FAM_000002 S_PGP_genome_B_001
+genome_A    P_000001 T_000002 I_INT_000001 R_000003
+genome_B    P_000001 I_INT_000002 C_000004 P_000002 S_PGP_genome_B_001
 ```
 
 ### Roary-Compatible Output
@@ -255,7 +255,7 @@ This generates:
 
 ### Pangenome Classifications
 
-- **Core genes**: Present in ≥95% of genomes
+- **Core genes**: Present in >=95% of genomes
 - **Shell genes**: Present in 15-95% of genomes
 - **Cloud genes**: Present in <15% of genomes
 - **Singletons**: Present in only one genome
@@ -318,15 +318,20 @@ python -m pangenomeplus genomes/ output/ --sensitivity 4.0
 
 ```
 Input Genomes
-     ↓
+     |
+     v
 Annotation (Prodigal, tRNAscan, Barrnap, MINCED)
-     ↓
+     |
+     v
 Feature Extraction (Proteins, tRNA, rRNA, CRISPR, Intergenic)
-     ↓
+     |
+     v
 Clustering (MMseqs2 easy-cluster)
-     ↓
+     |
+     v
 Family Assignment
-     ↓
+     |
+     v
 Output Generation (Transformer, Presence/Absence, Roary, FASTA)
 ```
 
@@ -343,7 +348,7 @@ Output Generation (Transformer, Presence/Absence, Roary, FASTA)
 If you use PanGenomePlus in your research, please cite:
 
 ```
-McInerney et al. (2024). PanGenomePlus: High-performance pangenome analysis
+McInerney J.O. (2024). PanGenomePlus: High-performance pangenome analysis
 with multi-feature support. GitHub: https://github.com/mol-evol/pangenomeplus
 ```
 
@@ -371,5 +376,5 @@ Contributions are welcome! Please:
 ---
 
 **Repository**: https://github.com/mol-evol/pangenomeplus
-**Author**: James McInerney (james.mcinerney@nottingham.ac.uk)
+**Author**: James McInerney
 **Version**: 1.0.0

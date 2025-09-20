@@ -180,25 +180,25 @@ results/
 AI-ready format with feature type prefixes:
 ```
 # Example content:
-E_coli_K12    P_FAM_000001 P_FAM_000002 T_FAM_000001 I_INT_000001
-E_coli_O157   P_FAM_000001 P_FAM_000003 T_FAM_000001 I_INT_000002
+E_coli_K12    P_000001 P_000002 T_000001 I_INT_000001
+E_coli_O157   P_000001 P_000003 T_000001 I_INT_000002
 ```
 
 #### 2. Presence/Absence Matrix (`outputs/presence_absence_matrix.tsv`)
 Binary matrix showing which families are present in each genome:
 ```
 Family_ID       E_coli_K12    E_coli_O157    Salmonella_LT2
-P_FAM_000001    1             1              1
-P_FAM_000002    1             0              1
-P_FAM_000003    0             1              0
+P_000001    1             1              1
+P_000002    1             0              1
+P_000003    0             1              0
 ```
 
 #### 3. Family Summary (`families/family_summary.tsv`)
 Statistics for each gene family:
 ```
 family_id       size    feature_types          representative
-P_FAM_000001    4       protein_coding_gene    PGP_E_coli_K12_001
-P_FAM_000002    2       protein_coding_gene    PGP_E_coli_K12_045
+P_000001    4       protein_coding_gene    PGP_E_coli_K12_001
+P_000002    2       protein_coding_gene    PGP_E_coli_K12_045
 ```
 
 ### Step 4: Quick Analysis

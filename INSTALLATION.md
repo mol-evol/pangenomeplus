@@ -254,37 +254,37 @@ echo "Testing external tools..."
 
 # MMseqs2 (required)
 if command -v mmseqs &> /dev/null; then
-    echo "✓ MMseqs2 found: $(mmseqs version | head -1)"
+    echo "[OK] MMseqs2 found: $(mmseqs version | head -1)"
 else
-    echo "✗ MMseqs2 not found"
+    echo "[ERROR] MMseqs2 not found"
 fi
 
 # Prodigal (required)
 if command -v prodigal &> /dev/null; then
-    echo "✓ Prodigal found: $(prodigal -v 2>&1 | head -1)"
+    echo "[OK] Prodigal found: $(prodigal -v 2>&1 | head -1)"
 else
-    echo "✗ Prodigal not found"
+    echo "[ERROR] Prodigal not found"
 fi
 
 # tRNAscan-SE (optional)
 if command -v tRNAscan-SE &> /dev/null; then
-    echo "✓ tRNAscan-SE found"
+    echo "[OK] tRNAscan-SE found"
 else
-    echo "○ tRNAscan-SE not found (optional)"
+    echo "[OPTIONAL] tRNAscan-SE not found (optional)"
 fi
 
 # Barrnap (optional)
 if command -v barrnap &> /dev/null; then
-    echo "✓ Barrnap found"
+    echo "[OK] Barrnap found"
 else
-    echo "○ Barrnap not found (optional)"
+    echo "[OPTIONAL] Barrnap not found (optional)"
 fi
 
 # MINCED (optional)
 if command -v minced &> /dev/null; then
-    echo "✓ MINCED found"
+    echo "[OK] MINCED found"
 else
-    echo "○ MINCED not found (optional)"
+    echo "[OPTIONAL] MINCED not found (optional)"
 fi
 ```
 

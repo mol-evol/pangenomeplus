@@ -394,8 +394,8 @@ def generate_transformer_format(
         C_ = CRISPR arrays
 
     Example Output (with feature_type_prefix=True):
-        genome_A P_FAM_001 T_FAM_002 I_INT_001 R_FAM_003
-        genome_B P_FAM_001 I_INT_002 C_FAM_004 P_FAM_002
+        genome_A P_000001 T_000002 I_INT_000001 R_000003
+        genome_B P_000001 I_INT_000002 C_000004 P_000002
     """
     # Group features by genome and sort by position
     genome_features = {}

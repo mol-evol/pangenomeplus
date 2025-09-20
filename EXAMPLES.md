@@ -641,11 +641,11 @@ print(f"  Families gained: {len(gained_families)}")
 # Show top changes
 print("\nTop families lost after treatment:")
 for family, pre_prev, post_prev in lost_families[:5]:
-    print(f"  {family}: {pre_prev:.2f} → {post_prev:.2f}")
+    print(f"  {family}: {pre_prev:.2f} -> {post_prev:.2f}")
 
 print("\nTop families gained after treatment:")
 for family, pre_prev, post_prev in gained_families[:5]:
-    print(f"  {family}: {pre_prev:.2f} → {post_prev:.2f}")
+    print(f"  {family}: {pre_prev:.2f} -> {post_prev:.2f}")
 EOF
 ```
 
@@ -878,7 +878,7 @@ def quality_control_analysis(results_dir):
     singleton_families = family_stats[family_stats['prevalence'] == 1]
 
     print(f"\nPangenome composition:")
-    print(f"  Core genes (≥{core_threshold*100}%): {len(core_families)} ({len(core_families)/n_families*100:.1f}%)")
+    print(f"  Core genes (>={core_threshold*100}%): {len(core_families)} ({len(core_families)/n_families*100:.1f}%)")
     print(f"  Accessory genes: {len(accessory_families)} ({len(accessory_families)/n_families*100:.1f}%)")
     print(f"  Singleton genes: {len(singleton_families)} ({len(singleton_families)/n_families*100:.1f}%)")
 

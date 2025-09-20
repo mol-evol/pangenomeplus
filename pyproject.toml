@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "pangenomeplus"
 version = "1.0.0"
 description = "High-performance pangenome analysis pipeline built on MMseqs2 with support for multiple genomic feature types and AI-ready output formats"
-authors = [{name = "James McInerney", email = "james.mcinerney@nottingham.ac.uk"}]
+authors = [{name = "James McInerney"}]
 license = {file = "LICENSE"}
 readme = "README.md"
 requires-python = ">=3.9"

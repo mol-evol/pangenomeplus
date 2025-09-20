@@ -20,25 +20,25 @@ Complete technical documentation for developers using PanGenomePlus programmatic
 PanGenomePlus follows a modular pipeline architecture:
 
 ```
-Input Genomes → Annotation → Feature Extraction → Clustering → Family Assignment → Output Generation
+Input Genomes -> Annotation -> Feature Extraction -> Clustering -> Family Assignment -> Output Generation
 ```
 
 ### Package Structure
 ```
 pangenomeplus/
-├── __main__.py              # Command-line interface
-├── pipeline.py              # Main pipeline orchestration
-├── core/
-│   ├── types.py            # Data structures and enums
-│   └── exceptions.py       # Custom exception classes
-├── modules/
-│   ├── annotation.py       # Genome annotation
-│   ├── extraction.py       # Feature extraction
-│   ├── clustering.py       # MMseqs2 clustering
-│   ├── families.py         # Gene family assignment
-│   └── output.py           # Output format generation
-└── utils/
-    └── config.py           # Configuration management
+|-- __main__.py              # Command-line interface
+|-- pipeline.py              # Main pipeline orchestration
+|-- core/
+|   |-- types.py            # Data structures and enums
+|   `-- exceptions.py       # Custom exception classes
+|-- modules/
+|   |-- annotation.py       # Genome annotation
+|   |-- extraction.py       # Feature extraction
+|   |-- clustering.py       # MMseqs2 clustering
+|   |-- families.py         # Gene family assignment
+|   `-- output.py           # Output format generation
+`-- utils/
+    `-- config.py           # Configuration management
 ```
 
 ## Main Pipeline API
@@ -931,7 +931,7 @@ def main():
         )
 
         # Process results
-        print(f"✓ Analysis completed successfully!")
+        print(f"[OK] Analysis completed successfully!")
         print(f"  Genomes processed: {results['n_genomes']}")
         print(f"  Features extracted: {results['n_features']}")
         print(f"  Gene families: {results['n_families']}")
@@ -943,7 +943,7 @@ def main():
         print(f"  Presence/absence matrix: {output_files['presence_absence_matrix']}")
 
     except PipelineError as e:
-        print(f"✗ Pipeline failed: {e}")
+        print(f"[ERROR] Pipeline failed: {e}")
         return 1
 
     return 0
