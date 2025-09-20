@@ -1,0 +1,84 @@
+annotation:
+  barrnap:
+    evalue: 1.0e-06
+    kingdom: bac
+    length_cutoff: 0.8
+  prodigal:
+    closed_ends: true
+    genetic_code: 11
+    procedure: single
+  tools:
+  - prodigal
+  - trnascan
+  - barrnap
+  trnascan:
+    relaxed: false
+    search_mode: bacterial
+checkpoints:
+  compression: true
+  enabled: true
+  frequency: stage
+  keep_n: 5
+classification:
+  cloud_threshold: 0.15
+  hard_core_threshold: 1.0
+  shell_threshold: 0.15
+  soft_core_threshold: 0.95
+clustering:
+  gpu:
+    devices: []
+    memory_fraction: 0.8
+    use_gpu: false
+  protein:
+    cluster_mode: 0
+    coverage: 0.8
+    coverage_mode: 0
+    identity: 0.8
+    sensitivity: 7.5
+  rrna:
+    coverage: 0.9
+    coverage_mode: 0
+    identity: 0.97
+    sensitivity: 7.5
+  trna:
+    coverage: 0.9
+    coverage_mode: 0
+    identity: 0.9
+    sensitivity: 7.5
+logging:
+  file: null
+  format: detailed
+  level: INFO
+output:
+  formats:
+  - transformer
+  - presence_absence
+  presence_absence:
+    binary: true
+    format: tsv
+  transformer:
+    compress: false
+    include_singletons: true
+    singleton_prefix: S
+    feature_type_prefix: true
+paralogs:
+  handling: keep
+  min_synteny_conservation: 0.8
+  synteny_window: 5
+pipeline:
+  description: Adaptive scale pangenome analysis
+  name: pangenome_analysis
+  version: 1.0.0
+resources:
+  keep_temp: false
+  memory_limit: null
+  temp_dir: null
+  threads: 4
+strategy:
+  force_strategy: null
+  mode: auto
+validation:
+  input_files: true
+  intermediate_results: true
+  system_requirements: true
+  tool_versions: true

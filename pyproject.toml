@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pangenome-pipeline"
+version = "1.0.0"
+description = "Adaptive Scale Pangenome Analysis Pipeline"
+authors = [{name = "James McInerney", email = "james.mcinerney@nottingham.ac.uk"}]
+license = {file = "LICENSE"}
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "numpy>=1.21.0,<2.0.0",
+    "pandas>=1.5.0,<3.0.0",
+    "biopython>=1.80,<2.0.0",
+    "click>=8.0.0,<9.0.0",
+    "pydantic>=2.0.0,<3.0.0",
+    "jsonschema>=4.0.0,<5.0.0",
+    "pyyaml>=6.0.0,<7.0.0",
+    "psutil>=5.8.0,<6.0.0",
+    "rich>=12.0.0,<14.0.0",
+    "tqdm>=4.64.0,<5.0.0",
+    "scipy>=1.9.0,<2.0.0",
+    "networkx>=2.8.0,<4.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=22.0.0",
+    "isort>=5.10.0",
+    "flake8>=5.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=2.20.0",
+]
+hpc = [
+    "dask[distributed]>=2023.1.0",
+    "paramiko>=3.0.0",
+]
+gpu = [
+    "cupy-cuda11x>=11.0.0; platform_machine=='x86_64'",
+]
+
+[project.scripts]
+pangenome-pipeline = "pangenome_pipeline.main:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 120
+target-version = ['py39', 'py310', 'py311', 'py312']
+
+[tool.isort]
+profile = "black"
+line_length = 120
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
