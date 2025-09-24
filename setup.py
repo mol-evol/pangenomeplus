@@ -1,0 +1,36 @@
+from setuptools import find_packages, setup
+
+setup(
+    name="pangenomeplus",
+    version="0.1.0",
+    description="Comprehensive pangenome analysis pipeline for all genomic features",
+    author="PanGenomePlus Team",
+    packages=find_packages(),
+    python_requires=">=3.8",
+    install_requires=[
+        "biopython>=1.79",
+        "pytest>=7.0",
+        "pytest-cov>=4.0",
+        "black>=22.0",
+        "isort>=5.0",
+        "flake8>=5.0",
+        "mypy>=0.991",
+        "pre-commit>=2.20",
+    ],
+    entry_points={
+        "console_scripts": [
+            "pangenomeplus=pangenomeplus.cli:main",
+        ],
+    },
+    classifiers=[
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Topic :: Scientific/Engineering :: Bio-Informatics",
+    ],
+)
