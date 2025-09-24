@@ -4,7 +4,7 @@ setup(
     name="pangenomeplus",
     version="0.1.0",
     description="Comprehensive pangenome analysis pipeline for all genomic features",
-    author="PanGenomePlus Team",
+    author="James McInerney",
     packages=find_packages(),
     python_requires=">=3.8",
     install_requires=[

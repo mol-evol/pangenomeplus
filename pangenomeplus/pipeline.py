@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from .clustering import ClusteringError, FamilyStats, cluster_features_by_type
 from .compact_ids import CompactIDManager
 from .core import Feature
 from .extraction import ExtractionError, extract_genome_features
@@ -95,6 +96,14 @@ class ProcessingStats:
     start_time: float = 0
     end_time: float = 0
 
+    # Clustering statistics
+    total_families: int = 0
+    family_counts: Dict[str, int] = None
+    singleton_counts: Dict[str, int] = None
+    core_families: int = 0
+    accessory_families: int = 0
+    cloud_families: int = 0
+
     def __post_init__(self):
         """Initialize feature counts."""
         if self.feature_counts is None:
@@ -104,6 +113,22 @@ class ProcessingStats:
                 "tRNAs": 0,
                 "rRNAs": 0,
                 "CRISPR": 0,
+            }
+        if self.family_counts is None:
+            self.family_counts = {
+                "P": 0,  # Protein families
+                "I": 0,  # Intergenic families
+                "T": 0,  # tRNA families
+                "R": 0,  # rRNA families
+                "C": 0,  # CRISPR families
+            }
+        if self.singleton_counts is None:
+            self.singleton_counts = {
+                "P": 0,  # Protein singletons
+                "I": 0,  # Intergenic singletons
+                "T": 0,  # tRNA singletons
+                "R": 0,  # rRNA singletons
+                "C": 0,  # CRISPR singletons
             }
 
     @property
@@ -127,6 +152,26 @@ class ProcessingStats:
                 count = len(feature_list)
                 self.feature_counts[feature_type] += count
                 self.total_features += count
+
+    def add_family_stats(self, family_stats: Dict[str, FamilyStats]) -> None:
+        """Add family statistics from clustering results."""
+        for family_id, stats in family_stats.items():
+            feature_type = stats.feature_type
+
+            if feature_type in self.family_counts:
+                if stats.classification == "singleton":
+                    self.singleton_counts[feature_type] += 1
+                else:
+                    self.family_counts[feature_type] += 1
+                    self.total_families += 1
+
+                    # Update classification counts
+                    if stats.classification == "core":
+                        self.core_families += 1
+                    elif stats.classification == "accessory":
+                        self.accessory_families += 1
+                    elif stats.classification == "cloud":
+                        self.cloud_families += 1
 
 
 class PipelineError(Exception):
@@ -286,6 +331,100 @@ def save_feature_mappings(
     return mappings_file
 
 
+def run_clustering_stage(
+    id_manager: CompactIDManager,
+    config: PipelineConfig,
+    total_genomes: int,
+    logger: logging.Logger,
+) -> Dict[str, Dict[str, FamilyStats]]:
+    """Run clustering stage on all extracted features.
+
+    Args:
+        id_manager: CompactIDManager with all features
+        config: Pipeline configuration
+        total_genomes: Total number of genomes for classification
+        logger: Logger instance
+
+    Returns:
+        Dictionary mapping feature type to family statistics
+
+    Raises:
+        ClusteringError: If clustering fails
+    """
+    logger.info("Starting clustering stage")
+
+    clustering_output_dir = os.path.join(config.output_dir, "clustering")
+    os.makedirs(clustering_output_dir, exist_ok=True)
+
+    # Feature type mapping for clustering
+    feature_type_map = {
+        "proteins": "P",
+        "intergenic": "I",
+        "tRNAs": "T",
+        "rRNAs": "R",
+        "CRISPR": "C",
+    }
+
+    all_family_stats = {}
+
+    for feature_name, feature_type in feature_type_map.items():
+        # Skip if feature type disabled by configuration
+        if _should_skip_feature_type(feature_type, config):
+            logger.debug(f"Skipping {feature_name} clustering (disabled by config)")
+            continue
+
+        # Get all features of this type
+        features = []
+        for compact_id, feature in id_manager.compact_to_full.items():
+            if feature.feature_type == feature_type:
+                features.append(feature)
+
+        if not features:
+            logger.info(f"No {feature_name} features found for clustering")
+            continue
+
+        logger.info(f"Clustering {len(features)} {feature_name} features")
+
+        try:
+            # Run clustering for this feature type
+            compact_to_family, family_stats = cluster_features_by_type(
+                features=features,
+                feature_type=feature_type,
+                output_dir=clustering_output_dir,
+                id_manager=id_manager,
+                total_genomes=total_genomes,
+            )
+
+            all_family_stats[feature_type] = family_stats
+
+            # Update id_manager with family assignments (if we extend it later)
+            logger.info(
+                f"  {feature_name}: {len(family_stats)} families "
+                f"({len([f for f in family_stats.values() if f.classification != 'singleton'])} "
+                f"multi-member families)"
+            )
+
+        except ClusteringError as e:
+            logger.error(f"Clustering failed for {feature_name}: {e}")
+            # Continue with other feature types
+            continue
+
+    logger.info("Clustering stage completed")
+    return all_family_stats
+
+
+def _should_skip_feature_type(feature_type: str, config: PipelineConfig) -> bool:
+    """Check if feature type should be skipped based on configuration."""
+    skip_map = {
+        "P": config.non_coding_only,  # Skip proteins if non-coding only
+        "I": config.skip_intergenic or config.protein_only,
+        "T": config.skip_trna or config.protein_only,
+        "R": config.skip_rrna or config.protein_only,
+        "C": config.skip_crispr or config.protein_only,
+    }
+    return skip_map.get(feature_type, False)
+
+
 def process_single_genome(
     genome_file: str,
     config: PipelineConfig,
@@ -356,7 +495,9 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
     2. Process each genome through extraction pipeline
     3. Assign compact IDs universally
     4. Save intermediate results with checkpoints
-    5. Generate final mappings and statistics
+    5. Run MMseqs2 clustering on all features
+    6. Assign family IDs and classify as core/accessory/cloud
+    7. Generate final mappings and statistics
 
     Args:
         config: Pipeline configuration
@@ -465,6 +606,27 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
     # Finalize processing
     stats.end_time = time.time()
 
+    # Run clustering stage if any genomes were processed
+    if stats.processed_genomes > 0 and stats.total_features > 0:
+        logger.info("Starting clustering stage")
+        try:
+            all_family_stats = run_clustering_stage(
+                id_manager=id_manager,
+                config=config,
+                total_genomes=stats.processed_genomes,
+                logger=logger,
+            )
+
+            # Update statistics with clustering results
+            for feature_type, family_stats in all_family_stats.items():
+                stats.add_family_stats(family_stats)
+
+            logger.info("Clustering stage completed successfully")
+
+        except ClusteringError as e:
+            logger.error(f"Clustering stage failed: {e}")
+            logger.warning("Continuing without clustering results")
+
     # Save final mappings
     if stats.processed_genomes > 0:
         mappings_file = save_feature_mappings(
@@ -480,9 +642,34 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
     logger.info(f"Processing time: {stats.processing_time:.1f} seconds")
     logger.info(f"Rate: {stats.genomes_per_second:.2f} genomes/second")
 
+    logger.info("Feature extraction summary:")
     for feature_type, count in stats.feature_counts.items():
         if count > 0:
             logger.info(f"  {feature_type}: {count:,} features")
+
+    # Clustering statistics
+    if stats.total_families > 0 or any(stats.family_counts.values()):
+        logger.info("Clustering summary:")
+        logger.info(f"  Total families: {stats.total_families:,}")
+        logger.info(f"  Core families: {stats.core_families:,}")
+        logger.info(f"  Accessory families: {stats.accessory_families:,}")
+        logger.info(f"  Cloud families: {stats.cloud_families:,}")
+
+        logger.info("Families by feature type:")
+        feature_names = {
+            "P": "Proteins",
+            "I": "Intergenic",
+            "T": "tRNAs",
+            "R": "rRNAs",
+            "C": "CRISPR",
+        }
+        for feature_type, count in stats.family_counts.items():
+            if count > 0:
+                singletons = stats.singleton_counts.get(feature_type, 0)
+                logger.info(
+                    f"  {feature_names.get(feature_type, feature_type)}: "
+                    f"{count:,} families, {singletons:,} singletons"
+                )
 
     if failed_genomes:
         logger.warning(f"Failed genomes: {', '.join(failed_genomes)}")
