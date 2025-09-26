@@ -55,6 +55,14 @@ class PipelineConfig:
     keep_intermediates: bool = True
     log_level: str = "INFO"
 
+    # Annotation options
+    use_existing_annotations: bool = False
+
+    # Downstream analysis options
+    enable_downstream_analysis: bool = False
+    rarefaction_iterations: int = 100
+    rarefaction_step_size: int = 1
+
     def __post_init__(self):
         """Initialize default parameters if not provided."""
         if self.prodigal_params is None:
@@ -468,6 +476,7 @@ def process_single_genome(
             skip_rrna=skip_rrna,
             skip_crispr=skip_crispr,
             skip_intergenic=skip_intergenic,
+            use_existing_annotations=config.use_existing_annotations,
             prodigal=config.prodigal_params,
             trna=config.trna_params,
             rrna=config.rrna_params,

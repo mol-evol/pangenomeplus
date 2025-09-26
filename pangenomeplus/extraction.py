@@ -483,6 +483,7 @@ def extract_genome_features(
     skip_rrna: bool = False,
     skip_crispr: bool = False,
     skip_intergenic: bool = False,
+    use_existing_annotations: bool = False,
     **tool_params,
 ) -> Dict[str, List[Feature]]:
     """Extract all features from a genome using external tools.
@@ -520,13 +521,51 @@ def extract_genome_features(
 
     # 1. Run Prodigal for protein-coding genes (always required for intergenic calculation)
     try:
-        gff_file = run_prodigal(
-            genome_file, genome_output_dir, **tool_params.get("prodigal", {})
-        )
-        protein_features = parse_prodigal_gff(
-            gff_file, genome_file, genome_id, id_manager
-        )
-        all_features["proteins"] = protein_features
+        # Check for existing GFF3 file if requested
+        if use_existing_annotations:
+            genome_base = Path(genome_file).stem
+            potential_gff = Path(genome_file).parent / f"{genome_base}.gff"
+            potential_gff3 = Path(genome_file).parent / f"{genome_base}.gff3"
+
+            existing_gff = None
+            if potential_gff.exists():
+                existing_gff = str(potential_gff)
+            elif potential_gff3.exists():
+                existing_gff = str(potential_gff3)
+
+            if existing_gff:
+                try:
+                    protein_features = parse_prodigal_gff(
+                        existing_gff, genome_file, genome_id, id_manager
+                    )
+                    all_features["proteins"] = protein_features
+                except Exception:
+                    # Fall back to Prodigal on any error
+                    gff_file = run_prodigal(
+                        genome_file, genome_output_dir, **tool_params.get("prodigal", {})
+                    )
+                    protein_features = parse_prodigal_gff(
+                        gff_file, genome_file, genome_id, id_manager
+                    )
+                    all_features["proteins"] = protein_features
+            else:
+                # No existing GFF found, run Prodigal
+                gff_file = run_prodigal(
+                    genome_file, genome_output_dir, **tool_params.get("prodigal", {})
+                )
+                protein_features = parse_prodigal_gff(
+                    gff_file, genome_file, genome_id, id_manager
+                )
+                all_features["proteins"] = protein_features
+        else:
+            # Standard Prodigal run
+            gff_file = run_prodigal(
+                genome_file, genome_output_dir, **tool_params.get("prodigal", {})
+            )
+            protein_features = parse_prodigal_gff(
+                gff_file, genome_file, genome_id, id_manager
+            )
+            all_features["proteins"] = protein_features
     except Exception as e:
         raise ExtractionError(f"Protein extraction failed for {genome_id}: {e}")
 
