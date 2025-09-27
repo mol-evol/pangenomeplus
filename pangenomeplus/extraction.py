@@ -19,7 +19,7 @@ All functions follow the pattern:
 import os
 import subprocess
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from Bio import SeqIO
 
@@ -253,6 +253,118 @@ def run_minced(
     return output_file
 
 
+def parse_minced_output(
+    minced_file: str, genome_file: str, genome_id: str, id_manager: CompactIDManager
+) -> List[Feature]:
+    """Parse MINCED text output and create Feature objects for CRISPR spacers.
+
+    Args:
+        minced_file: Path to MINCED text output file
+        genome_file: Path to original genome FASTA file
+        genome_id: Identifier for this genome
+        id_manager: CompactIDManager for ID assignment
+
+    Returns:
+        List of Feature objects for CRISPR spacer sequences
+
+    Raises:
+        ExtractionError: If parsing fails
+    """
+    features = []
+
+    # Load genome sequences for sequence extraction
+    try:
+        genome_records = list(SeqIO.parse(genome_file, "fasta"))
+        if not genome_records:
+            raise ValueError("No sequences found")
+
+        # Genome sequences loaded (not used in current MINCED parsing implementation)
+        # contig_sequences = {record.id: str(record.seq) for record in genome_records}
+    except Exception as e:
+        raise ExtractionError(f"Failed to load genome sequence: {e}")
+
+    try:
+        with open(minced_file, "r") as f:
+            lines = f.readlines()
+
+        current_contig = None
+        current_crispr_start = None
+        spacer_count = 0
+
+        for line in lines:
+            line = line.strip()
+
+            # Parse sequence header to get contig name
+            if line.startswith("Sequence '") and "' (" in line:
+                current_contig = line.split("'")[1]
+                continue
+
+            # Parse CRISPR array header
+            if line.startswith("CRISPR ") and "Range:" in line:
+                # Extract range: "CRISPR 1   Range: 50 - 120"
+                range_part = line.split("Range:")[1].strip()
+                start, end = map(int, range_part.split(" - "))
+                current_crispr_start = start
+                continue
+
+            # Parse spacer lines (contain both repeat and spacer positions)
+            if current_contig and current_crispr_start and line and line[0].isdigit():
+                parts = line.split("\t")
+                if len(parts) >= 5:  # Position, tabs, repeat, tabs, spacer
+                    try:
+                        position = int(parts[0])
+                        repeat_seq = parts[2].strip() if len(parts) > 2 else ""
+                        spacer_seq = parts[4].strip() if len(parts) > 4 else ""
+
+                        # Only process lines that have spacer sequences
+                        if (
+                            spacer_seq
+                            and spacer_seq != ""
+                            and spacer_seq not in ["------"]
+                        ):
+                            # Calculate spacer coordinates
+                            # Spacer starts after the repeat at this position
+                            repeat_len = len(repeat_seq)
+                            spacer_start = position + repeat_len
+                            spacer_end = spacer_start + len(spacer_seq) - 1
+
+                            # Generate compact ID
+                            compact_id = id_manager.generate_compact_id("C")
+
+                            crispr_feature = Feature(
+                                compact_id=compact_id,
+                                genome_id=genome_id,
+                                contig=current_contig,
+                                start=spacer_start,
+                                end=spacer_end,
+                                strand=".",  # CRISPR spacers don't have inherent strand
+                                sequence=spacer_seq,
+                                feature_type="C",
+                                original_id=(
+                                    f"crispr_spacer_{spacer_count + 1}"
+                                ),
+                                metadata={
+                                    "product": "CRISPR_spacer",
+                                    "array_start": current_crispr_start,
+                                    "repeat_sequence": repeat_seq,
+                                    "spacer_position": position,
+                                },
+                            )
+
+                            features.append(crispr_feature)
+                            id_manager.register_feature(crispr_feature)
+                            spacer_count += 1
+
+                    except (ValueError, IndexError):
+                        # Skip malformed lines
+                        continue
+
+    except Exception as e:
+        raise ExtractionError(f"Failed to parse MINCED output {minced_file}: {e}")
+
+    return features
+
+
 def parse_prodigal_gff(
     gff_file: str, genome_file: str, genome_id: str, id_manager: CompactIDManager
 ) -> List[Feature]:
@@ -484,7 +596,7 @@ def extract_genome_features(
     skip_crispr: bool = False,
     skip_intergenic: bool = False,
     use_existing_annotations: bool = False,
-    **tool_params,
+    **tool_params: Any,
 ) -> Dict[str, List[Feature]]:
     """Extract all features from a genome using external tools.
 
@@ -508,7 +620,7 @@ def extract_genome_features(
     Raises:
         ExtractionError: If extraction fails
     """
-    all_features = {
+    all_features: Dict[str, List[Feature]] = {
         "proteins": [],
         "intergenic": [],
         "tRNAs": [],
@@ -542,7 +654,9 @@ def extract_genome_features(
                 except Exception:
                     # Fall back to Prodigal on any error
                     gff_file = run_prodigal(
-                        genome_file, genome_output_dir, **tool_params.get("prodigal", {})
+                        genome_file,
+                        genome_output_dir,
+                        **tool_params.get("prodigal", {}),
                     )
                     protein_features = parse_prodigal_gff(
                         gff_file, genome_file, genome_id, id_manager
@@ -579,8 +693,35 @@ def extract_genome_features(
         except Exception as e:
             raise ExtractionError(f"Intergenic extraction failed for {genome_id}: {e}")
 
-    # TODO: Implement tRNA, rRNA, and CRISPR extraction in next phase
+    # 3. CRISPR extraction
+    if not skip_crispr:
+        try:
+            # Extract CRISPR parameters from tool_params
+            crispr_params = {
+                "min_repeats": tool_params.get("crispr_min_repeats", 3),
+                "min_spacer_length": tool_params.get("crispr_min_spacer_length", 26),
+                "max_spacer_length": tool_params.get("crispr_max_spacer_length", 50),
+            }
+
+            # Run MINCED to detect CRISPR arrays
+            minced_output = run_minced(
+                genome_file=genome_file, output_dir=output_dir, **crispr_params
+            )
+
+            # Parse MINCED output and create features
+            crispr_features = parse_minced_output(
+                minced_file=minced_output,
+                genome_file=genome_file,
+                genome_id=genome_id,
+                id_manager=id_manager,
+            )
+            all_features["crispr"] = crispr_features
+
+        except Exception as e:
+            raise ExtractionError(f"CRISPR extraction failed for {genome_id}: {e}")
+
+    # TODO: Implement tRNA and rRNA extraction in future phases
     # These will follow similar patterns with their respective parsing functions
-    # Parameters skip_trna, skip_rrna, skip_crispr will be used then
+    # Parameters skip_trna and skip_rrna will be used then
 
     return all_features
