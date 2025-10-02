@@ -505,14 +505,14 @@ Analysis of 6 *E. coli* genomes produced:
 **Features extracted**:
 - 25,944 proteins → 4,211 families
 - 14,570 intergenic regions → 2,553 families
-- 468 tRNAs → 54 families
+- 468 tRNAs → 55 families
 - 132 rRNAs → 3 families
 
-**Total**: 41,114 features clustered into 6,821 families
+**Total**: 41,114 features clustered into 6,822 families
 
 **Classification**:
-- **Core families** (≥95%): 6,520 families (95.7%)
-- **Accessory families** (15-95%): 296 families (4.3%)
+- **Core families** (≥95%): 6,525 families (95.6%)
+- **Accessory families** (15-95%): 297 families (4.4%)
 - **Cloud families** (<15%): 0 families
 
 ![Rarefaction Curves](README_images/rarefaction_curves.png)
