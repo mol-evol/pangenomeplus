@@ -499,10 +499,29 @@ def main() -> int:
         logger.info(f"Processed {stats.processed_genomes} genomes")
         logger.info(f"Generated {stats.total_families} gene families")
         logger.info(
-            f"Core: {stats.core_families}, "
+            f"Total - Core: {stats.core_families}, "
             f"Accessory: {stats.accessory_families}, "
             f"Cloud: {stats.cloud_families}"
         )
+
+        # Per-feature-type breakdown
+        feature_names = {
+            "P": "Proteins",
+            "I": "Intergenic",
+            "T": "tRNAs",
+            "R": "rRNAs",
+            "C": "CRISPR",
+        }
+        logger.info("By feature type:")
+        for feature_type in ["P", "I", "T", "R", "C"]:
+            if stats.family_counts.get(feature_type, 0) > 0:
+                core = stats.core_families_by_type.get(feature_type, 0)
+                accessory = stats.accessory_families_by_type.get(feature_type, 0)
+                cloud = stats.cloud_families_by_type.get(feature_type, 0)
+                logger.info(
+                    f"  {feature_names[feature_type]}: "
+                    f"Core={core}, Accessory={accessory}, Cloud={cloud}"
+                )
 
         return 0
 

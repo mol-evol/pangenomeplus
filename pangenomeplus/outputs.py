@@ -10,7 +10,6 @@ All outputs maintain genomic coordinate ordering and biological accuracy.
 """
 
 import csv
-import json
 import logging
 import os
 from pathlib import Path
@@ -284,8 +283,17 @@ def generate_family_summary(
         # Process all feature types
         total_families = 0
         classification_counts = {"core": 0, "accessory": 0, "cloud": 0}
+        classification_by_type: Dict[str, Dict[str, int]] = {}
 
         for feature_type, stats_dict in family_stats.items():
+            # Initialize per-type classification counts
+            if feature_type not in classification_by_type:
+                classification_by_type[feature_type] = {
+                    "core": 0,
+                    "accessory": 0,
+                    "cloud": 0,
+                }
+
             for family_id, stats in stats_dict.items():
                 genome_percentage = (stats.genome_count / total_genomes) * 100
 
@@ -298,6 +306,7 @@ def generate_family_summary(
                     classification = "cloud"
 
                 classification_counts[classification] += 1
+                classification_by_type[feature_type][classification] += 1
                 total_families += 1
 
                 # Basic family row
@@ -340,10 +349,28 @@ def generate_family_summary(
     logger.info(f"Family summary written to {output_file}")
     logger.info(f"Total families: {total_families}")
     logger.info(
-        f"Core: {classification_counts['core']}, "
+        f"Total - Core: {classification_counts['core']}, "
         f"Accessory: {classification_counts['accessory']}, "
         f"Cloud: {classification_counts['cloud']}"
     )
+
+    # Log per-feature-type breakdown
+    feature_names = {
+        "P": "Proteins",
+        "I": "Intergenic",
+        "T": "tRNAs",
+        "R": "rRNAs",
+        "C": "CRISPR",
+    }
+    logger.info("Classification by feature type:")
+    for feature_type, counts in sorted(classification_by_type.items()):
+        feature_name = feature_names.get(feature_type, feature_type)
+        logger.info(
+            f"  {feature_name}: "
+            f"Core={counts['core']}, "
+            f"Accessory={counts['accessory']}, "
+            f"Cloud={counts['cloud']}"
+        )
 
     return str(output_file)
 

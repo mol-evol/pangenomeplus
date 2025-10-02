@@ -398,6 +398,11 @@ class ProcessingStats:
     accessory_families: int = 0
     cloud_families: int = 0
 
+    # Per-feature-type classification statistics
+    core_families_by_type: Dict[str, int] = field(default_factory=dict)
+    accessory_families_by_type: Dict[str, int] = field(default_factory=dict)
+    cloud_families_by_type: Dict[str, int] = field(default_factory=dict)
+
     def __post_init__(self) -> None:
         """Initialize feature counts."""
         if not self.feature_counts:
@@ -423,6 +428,30 @@ class ProcessingStats:
                 "T": 0,  # tRNA singletons
                 "R": 0,  # rRNA singletons
                 "C": 0,  # CRISPR singletons
+            }
+        if not self.core_families_by_type:
+            self.core_families_by_type = {
+                "P": 0,
+                "I": 0,
+                "T": 0,
+                "R": 0,
+                "C": 0,
+            }
+        if not self.accessory_families_by_type:
+            self.accessory_families_by_type = {
+                "P": 0,
+                "I": 0,
+                "T": 0,
+                "R": 0,
+                "C": 0,
+            }
+        if not self.cloud_families_by_type:
+            self.cloud_families_by_type = {
+                "P": 0,
+                "I": 0,
+                "T": 0,
+                "R": 0,
+                "C": 0,
             }
 
     @property
@@ -459,13 +488,18 @@ class ProcessingStats:
                     self.family_counts[feature_type] += 1
                     self.total_families += 1
 
-                    # Update classification counts
+                    # Update per-type classification counts
                     if stats.classification == "core":
-                        self.core_families += 1
+                        self.core_families_by_type[feature_type] += 1
                     elif stats.classification == "accessory":
-                        self.accessory_families += 1
+                        self.accessory_families_by_type[feature_type] += 1
                     elif stats.classification == "cloud":
-                        self.cloud_families += 1
+                        self.cloud_families_by_type[feature_type] += 1
+
+        # Recalculate aggregate totals from per-type dicts
+        self.core_families = sum(self.core_families_by_type.values())
+        self.accessory_families = sum(self.accessory_families_by_type.values())
+        self.cloud_families = sum(self.cloud_families_by_type.values())
 
 
 class PipelineError(Exception):
@@ -1091,11 +1125,11 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
     if stats.total_families > 0 or any(stats.family_counts.values()):
         logger.info("Clustering summary:")
         logger.info(f"  Total families: {stats.total_families:,}")
-        logger.info(f"  Core families: {stats.core_families:,}")
-        logger.info(f"  Accessory families: {stats.accessory_families:,}")
-        logger.info(f"  Cloud families: {stats.cloud_families:,}")
+        logger.info(
+            f"  Total - Core: {stats.core_families:,}, Accessory: {stats.accessory_families:,}, Cloud: {stats.cloud_families:,}"
+        )
 
-        logger.info("Families by feature type:")
+        logger.info("Classification by feature type:")
         feature_names = {
             "P": "Proteins",
             "I": "Intergenic",
@@ -1103,12 +1137,16 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
             "R": "rRNAs",
             "C": "CRISPR",
         }
-        for feature_type, count in stats.family_counts.items():
-            if count > 0:
+        for feature_type in ["P", "I", "T", "R", "C"]:
+            total_fams = stats.family_counts.get(feature_type, 0)
+            if total_fams > 0:
+                core = stats.core_families_by_type.get(feature_type, 0)
+                accessory = stats.accessory_families_by_type.get(feature_type, 0)
+                cloud = stats.cloud_families_by_type.get(feature_type, 0)
                 singletons = stats.singleton_counts.get(feature_type, 0)
                 logger.info(
                     f"  {feature_names.get(feature_type, feature_type)}: "
-                    f"{count:,} families, {singletons:,} singletons"
+                    f"Core={core:,}, Accessory={accessory:,}, Cloud={cloud:,} ({singletons:,} singletons)"
                 )
 
     if failed_genomes:
