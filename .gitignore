@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# OS
+.DS_Store
+.claude/
+
+# Development notes
+codedevelopment.txt
+activeContext.md
+progress.md
+phase5_validation_complete.md
+performance_benchmark_8_genomes.md
+scalability_*.md
+
+# Test data directories
+test_*/
+tool_test/
+large_ecoli_analysis/
+analysis_200_fixed/
+200d_out/
+
+# Download scripts and data
+download_*.py
+extract_*.py
+verify_genomes.py
+create_test_genomes.py
+find_new_accessions.py
+datasets
+*.zip
+*.txt.gz
+temp_*.txt
+temp_*.fna.gz
+*_accessions.txt
+md5sum.txt
+
+# Unwanted files from previous commits
+CLAUDE.md
