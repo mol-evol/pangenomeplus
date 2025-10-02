@@ -445,20 +445,9 @@ Detailed execution logs with timestamps, warnings, and error messages.
 
 PanGenomePlus classifies gene families based on genome presence:
 
-- **Core families** (≥95% genomes): Genes present in nearly all genomes
-  - Essential housekeeping functions
-  - Conserved metabolic pathways
-  - Expected: 2,000-4,000 protein families for *E. coli*
-
-- **Accessory families** (15-95% genomes): Genes present in some genomes
-  - Niche-specific adaptations
-  - Mobile genetic elements
-  - Variable metabolic capabilities
-
-- **Cloud families** (<15% genomes): Rare genes
-  - Recently acquired genes
-  - Strain-specific functions
-  - May include sequencing artifacts
+- **Core families** (≥95% genomes): Present in nearly all genomes
+- **Accessory families** (15-95% genomes): Present in 15-95% of genomes
+- **Cloud families** (<15% genomes): Present in fewer than 15% of genomes
 
 ### Understanding Family Sizes
 
