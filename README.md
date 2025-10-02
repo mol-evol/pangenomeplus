@@ -133,6 +133,11 @@ pip install -e .
 # Analyze genomes in a directory
 pangenomeplus --genome-dir /path/to/genomes --output-dir results
 
+# Analyze with downstream analysis (visualizations, rarefaction curves, reports)
+pangenomeplus --genome-dir genomes/ \
+              --output-dir my_analysis/ \
+              --enable-downstream-analysis
+
 # Analyze with specific options
 pangenomeplus --genome-dir genomes/ \
               --output-dir my_analysis/ \
@@ -142,8 +147,13 @@ pangenomeplus --genome-dir genomes/ \
 
 ### Example with Provided Test Data
 ```bash
-# Using the included example genomes
+# Basic analysis with example genomes
 pangenomeplus --genome-dir example_data/ --output-dir example_output/
+
+# With downstream analysis and visualizations
+pangenomeplus --genome-dir example_data/ \
+              --output-dir example_output/ \
+              --enable-downstream-analysis
 ```
 
 ## Input Data
@@ -166,7 +176,7 @@ my_genomes/
 ### Quality Recommendations
 - Use complete or near-complete genome assemblies
 - Remove contamination before analysis
-- Verify assemblies represent single organisms (not metagenomes, unless using `--preset metagenomic`)
+- Verify assemblies represent single organisms (not metagenomes)
 
 ## Usage Tutorial
 
@@ -249,8 +259,8 @@ If analysis is interrupted, simply re-run the same command. PanGenomePlus will d
 ### Tool-Specific Parameters
 
 #### Prodigal
-- `--prodigal-mode {normal,meta}` - Gene prediction mode (default: normal)
-- `--translation-table {auto,11,4,1-25}` - Genetic code table (default: auto)
+- `--prodigal-mode {single,meta}` - Gene prediction mode (default: single)
+- `--translation-table INT` - Genetic code table 1-25 (default: 11 for bacteria)
 
 #### tRNAscan-SE
 - `--trna-model {bacteria,archaea,eukaryota,mitochondrial}` - Organism model (default: bacteria)
@@ -266,6 +276,14 @@ If analysis is interrupted, simply re-run the same command. PanGenomePlus will d
 - `--crispr-repeat-length-range MIN,MAX` - Repeat length bounds (default: 23,47)
 - `--crispr-spacer-length-range MIN,MAX` - Spacer length bounds (default: 26,50)
 
+### Annotation Input
+- `--use-existing-annotations` - Use existing GFF3 files if found (skips Prodigal)
+
+### Downstream Analysis
+- `--enable-downstream-analysis` - Generate rarefaction curves, visualizations, and summary reports
+- `--rarefaction-iterations INT` - Number of iterations for rarefaction curves (default: 100)
+- `--rarefaction-step-size INT` - Genome step size for rarefaction sampling (default: 1)
+
 ### Performance
 - `--threads INT` - Number of parallel threads (default: auto-detect)
 - `--memory-limit SIZE` - Memory limit for MMseqs2 (default: auto)
@@ -278,29 +296,49 @@ PanGenomePlus generates multiple output formats in the specified output director
 ### Directory Structure
 ```
 output_dir/
-├── features/
-│   ├── protein_coding_gene.fasta
-│   ├── tRNA.fasta
-│   ├── rRNA.fasta
-│   ├── CRISPR.fasta
-│   └── intergenic_region.fasta
-├── clusters/
-│   ├── protein_clusters.tsv
-│   ├── trna_clusters.tsv
-│   ├── rrna_clusters.tsv
-│   ├── crispr_clusters.tsv
-│   └── intergenic_clusters.tsv
-├── families/
-│   ├── gene_to_family.tsv
-│   └── family_summary.tsv
-├── matrices/
+├── intermediate/           # Per-genome annotation files
+│   └── genome_001/
+│       ├── genome_001_proteins.faa
+│       ├── genome_001_genes.gff
+│       ├── genome_001_trna.txt
+│       ├── genome_001_rrna.gff
+│       └── genome_001_crispr.txt
+├── features/              # Combined feature FASTA files with compact IDs
+│   ├── P_protein_coding_gene.fasta
+│   ├── T_tRNA.fasta
+│   ├── R_rRNA.fasta
+│   ├── C_CRISPR.fasta
+│   └── I_intergenic_region.fasta
+├── clusters/              # MMseqs2 clustering results
+│   ├── P_cluster_results.tsv
+│   ├── T_cluster_results.tsv
+│   ├── R_cluster_results.tsv
+│   ├── C_cluster_results.tsv
+│   └── I_cluster_results.tsv
+├── families/              # Gene family assignments
+│   ├── P_family_assignments.tsv
+│   ├── T_family_assignments.tsv
+│   └── family_stats.json
+├── matrices/              # Presence/absence matrices
 │   ├── presence_absence_matrix.csv
-│   └── core_genome.tsv
-├── transformer/
+│   └── family_summary.tsv
+├── transformer/           # Transformer-ready format
 │   └── pangenome_transformer.txt
-├── mappings/
+├── roary/                 # Roary-compatible outputs
+│   └── roary_compatible_output.csv
+├── mappings/              # ID mapping tables
 │   └── compact_id_mappings.json
-└── logs/
+├── analysis/              # Downstream analysis results (if --enable-downstream-analysis)
+│   ├── pangenome_report.md
+│   ├── rarefaction_curves.csv
+│   ├── pangenome_structure_report.txt
+│   ├── pangenome_structure_data.json
+│   └── visualizations/
+│       ├── rarefaction_curves.png
+│       ├── feature_type_distribution.png
+│       ├── family_classification.png
+│       └── presence_absence_heatmap.png
+└── logs/                  # Execution logs
     └── pangenomeplus_YYYYMMDD_HHMMSS.log
 ```
 
@@ -308,11 +346,11 @@ output_dir/
 
 #### 1. Feature Sequences (`features/`)
 FASTA files containing extracted sequences for each feature type with compact IDs:
-- `protein_coding_gene.fasta` - Protein sequences (headers: P1, P2, P3...)
-- `tRNA.fasta` - tRNA sequences (headers: T1, T2, T3...)
-- `rRNA.fasta` - rRNA sequences (headers: R1, R2, R3...)
-- `CRISPR.fasta` - CRISPR spacer sequences (headers: C1, C2, C3...)
-- `intergenic_region.fasta` - Intergenic sequences (headers: I1, I2, I3...)
+- `P_protein_coding_gene.fasta` - Protein sequences (headers: P1, P2, P3...)
+- `T_tRNA.fasta` - tRNA sequences (headers: T1, T2, T3...)
+- `R_rRNA.fasta` - rRNA sequences (headers: R1, R2, R3...)
+- `C_CRISPR.fasta` - CRISPR spacer sequences (headers: C1, C2, C3...)
+- `I_intergenic_region.fasta` - Intergenic sequences (headers: I1, I2, I3...)
 
 #### 2. Cluster Assignments (`clusters/`)
 Tab-separated files mapping sequences to cluster representatives:
@@ -374,7 +412,31 @@ Complete mapping between compact IDs and full genomic metadata:
 }
 ```
 
-#### 7. Log Files (`logs/`)
+#### 7. Downstream Analysis Outputs (`analysis/`)
+Generated when using `--enable-downstream-analysis`:
+
+**Markdown Summary Report** (`pangenome_report.md`):
+- Comprehensive pangenome analysis summary
+- Embedded visualizations
+- Core/accessory/cloud family statistics
+- Feature type breakdown
+- Pangenome openness classification
+
+**Rarefaction Data** (`rarefaction_curves.csv`):
+- Pangenome, core, and accessory genome growth curves
+- Statistical data for visualization
+
+**Visualizations** (`visualizations/`):
+- `rarefaction_curves.png` - Pangenome growth curves showing family accumulation
+- `feature_type_distribution.png` - Bar chart of families by feature type
+- `family_classification.png` - Pie chart of core/accessory/cloud proportions
+- `presence_absence_heatmap.png` - Top 50 most variable families across genomes
+
+**Structured Data** (`pangenome_structure_data.json`):
+- Machine-readable pangenome statistics
+- Openness analysis results
+
+#### 8. Log Files (`logs/`)
 Detailed execution logs with timestamps, warnings, and error messages.
 
 ## Interpreting Results
