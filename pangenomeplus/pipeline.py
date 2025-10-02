@@ -1184,6 +1184,8 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
                 openness_analysis=openness_analysis,
                 family_stats=all_family_stats,
                 output_file=report_file,
+                family_assignments=family_assignments,
+                id_manager=id_manager,
             )
 
             logger.info("")

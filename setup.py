@@ -9,6 +9,8 @@ setup(
     python_requires=">=3.8",
     install_requires=[
         "biopython>=1.79",
+        "matplotlib>=3.5.0",
+        "seaborn>=0.12.0",
         "pytest>=7.0",
         "pytest-cov>=4.0",
         "black>=22.0",
@@ -16,6 +18,7 @@ setup(
         "flake8>=5.0",
         "mypy>=0.991",
         "pre-commit>=2.20",
+        "rich>=13.0.0",
     ],
     entry_points={
         "console_scripts": [

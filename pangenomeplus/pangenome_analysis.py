@@ -24,6 +24,227 @@ from .compact_ids import CompactIDManager
 from .constants import FeatureType
 
 
+def _create_rarefaction_plot(
+    rarefaction_data: Dict[str, List[Tuple[int, float, float, float]]], output_dir: str
+) -> None:
+    """Generate rarefaction curve visualization.
+
+    Args:
+        rarefaction_data: Dictionary with pangenome, core, accessory curves
+        output_dir: Base output directory for saving plot
+    """
+    import matplotlib.pyplot as plt
+
+    vis_dir = Path(output_dir) / "visualizations"
+    vis_dir.mkdir(parents=True, exist_ok=True)
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Plot pangenome curve
+    if "pangenome" in rarefaction_data and rarefaction_data["pangenome"]:
+        data = rarefaction_data["pangenome"]
+        x = [row[0] for row in data]  # genome_count
+        y = [row[1] for row in data]  # mean
+        ax.plot(x, y, "b-", linewidth=2, label="Pangenome")
+
+    # Plot core genome curve
+    if "core" in rarefaction_data and rarefaction_data["core"]:
+        data = rarefaction_data["core"]
+        x = [row[0] for row in data]  # genome_count
+        y = [row[1] for row in data]  # mean
+        ax.plot(x, y, "r-", linewidth=2, label="Core genome")
+
+    # Plot accessory genome curve
+    if "accessory" in rarefaction_data and rarefaction_data["accessory"]:
+        data = rarefaction_data["accessory"]
+        x = [row[0] for row in data]  # genome_count
+        y = [row[1] for row in data]  # mean
+        ax.plot(x, y, "g-", linewidth=2, label="Accessory genome")
+
+    ax.set_xlabel("Number of Genomes", fontsize=12)
+    ax.set_ylabel("Number of Gene Families", fontsize=12)
+    ax.set_title("Pangenome Rarefaction Curves", fontsize=14, fontweight="bold")
+    ax.legend(loc="best", fontsize=10)
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(vis_dir / "rarefaction_curves.png", dpi=300)
+    plt.close()
+
+
+def _create_classification_pie(total_families: Dict[str, int], output_dir: str) -> None:
+    """Generate family classification pie chart.
+
+    Args:
+        total_families: Dictionary with core, accessory, cloud counts
+        output_dir: Base output directory for saving plot
+    """
+    import matplotlib.pyplot as plt
+
+    vis_dir = Path(output_dir) / "visualizations"
+    vis_dir.mkdir(parents=True, exist_ok=True)
+
+    labels = ["Core", "Accessory", "Cloud"]
+    sizes = [
+        total_families.get("core", 0),
+        total_families.get("accessory", 0),
+        total_families.get("cloud", 0),
+    ]
+    colors = ["#ff9999", "#66b3ff", "#99ff99"]
+    explode = (0.05, 0, 0)  # Explode core slice
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.pie(
+        sizes,
+        explode=explode,
+        labels=labels,
+        colors=colors,
+        autopct="%1.1f%%",
+        shadow=True,
+        startangle=90,
+    )
+    ax.set_title("Pangenome Family Classification", fontsize=14, fontweight="bold")
+
+    plt.tight_layout()
+    plt.savefig(vis_dir / "family_classification.png", dpi=300)
+    plt.close()
+
+
+def _create_feature_type_bars(
+    family_stats: Dict[str, Dict[str, FamilyStats]], output_dir: str
+) -> None:
+    """Generate feature type distribution bar chart.
+
+    Args:
+        family_stats: Family statistics by feature type
+        output_dir: Base output directory for saving plot
+    """
+    import matplotlib.pyplot as plt
+
+    vis_dir = Path(output_dir) / "visualizations"
+    vis_dir.mkdir(parents=True, exist_ok=True)
+
+    feature_types = []
+    counts = []
+
+    for feature_type, stats_dict in sorted(family_stats.items()):
+        feature_name = FeatureType.NAMES.get(feature_type, feature_type)
+        feature_types.append(feature_name)
+        counts.append(len(stats_dict))
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    bars = ax.bar(
+        feature_types,
+        counts,
+        color=["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"],
+    )
+
+    # Add value labels on bars
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(
+            bar.get_x() + bar.get_width() / 2.0,
+            height,
+            f"{int(height):,}",
+            ha="center",
+            va="bottom",
+        )
+
+    ax.set_xlabel("Feature Type", fontsize=12)
+    ax.set_ylabel("Number of Families", fontsize=12)
+    ax.set_title(
+        "Gene Family Distribution by Feature Type", fontsize=14, fontweight="bold"
+    )
+    ax.grid(axis="y", alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(vis_dir / "feature_type_distribution.png", dpi=300)
+    plt.close()
+
+
+def _create_presence_absence_heatmap(
+    family_assignments: Dict[str, Dict[str, str]],
+    id_manager: CompactIDManager,
+    output_dir: str,
+    top_n: int = 50,
+) -> None:
+    """Generate presence/absence heatmap for most variable families.
+
+    Args:
+        family_assignments: Family assignments by feature type
+        id_manager: Compact ID manager for genome lookups
+        output_dir: Base output directory for saving plot
+        top_n: Number of most variable families to show
+    """
+    from collections import defaultdict
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import seaborn as sns
+
+    vis_dir = Path(output_dir) / "visualizations"
+    vis_dir.mkdir(parents=True, exist_ok=True)
+
+    # Get all genome IDs
+    genome_ids = sorted(set(id_manager.genome_features.keys()))
+    if not genome_ids:
+        return  # No data to plot
+
+    # Build family to genomes mapping
+    family_to_genomes = defaultdict(set)
+    for feature_type, assignments in family_assignments.items():
+        for compact_id, family_id in assignments.items():
+            feature = id_manager.get_feature_by_compact_id(compact_id)
+            if feature:
+                family_to_genomes[family_id].add(feature.genome_id)
+
+    # Select most variable families (not 100% core, not singleton)
+    n_genomes = len(genome_ids)
+    variable_families = [
+        (fam, len(genomes))
+        for fam, genomes in family_to_genomes.items()
+        if 1 < len(genomes) < n_genomes
+    ]
+    variable_families.sort(key=lambda x: x[1], reverse=True)
+    selected_families = [fam for fam, _ in variable_families[:top_n]]
+
+    if not selected_families:
+        return  # No variable families to plot
+
+    # Build presence/absence matrix
+    matrix = []
+    for genome_id in genome_ids:
+        row = []
+        for family_id in selected_families:
+            has_family = genome_id in family_to_genomes[family_id]
+            row.append(1 if has_family else 0)
+        matrix.append(row)
+
+    # Plot heatmap
+    fig, ax = plt.subplots(figsize=(14, max(8, len(genome_ids) * 0.4)))
+    sns.heatmap(
+        np.array(matrix),
+        xticklabels=[f[:15] + "..." if len(f) > 15 else f for f in selected_families],
+        yticklabels=genome_ids,
+        cmap=["white", "#3182bd"],
+        cbar_kws={"label": "Present"},
+        ax=ax,
+    )
+
+    ax.set_title(
+        f"Presence/Absence Pattern (Top {len(selected_families)} Variable Families)",
+        fontsize=14,
+        fontweight="bold",
+    )
+    ax.set_xlabel("Gene Families", fontsize=12)
+    ax.set_ylabel("Genomes", fontsize=12)
+    plt.xticks(rotation=90)
+
+    plt.tight_layout()
+    plt.savefig(vis_dir / "presence_absence_heatmap.png", dpi=300, bbox_inches="tight")
+    plt.close()
+
+
 def calculate_rarefaction_curve(
     family_assignments: Dict[str, Dict[str, str]],
     id_manager: CompactIDManager,
@@ -400,6 +621,8 @@ def generate_comprehensive_markdown_report(
     family_stats: Dict[str, Dict[str, FamilyStats]],
     output_file: str,
     run_metadata: Optional[Dict[str, Any]] = None,
+    family_assignments: Optional[Dict[str, Dict[str, str]]] = None,
+    id_manager: Optional[CompactIDManager] = None,
 ) -> None:
     """Generate comprehensive markdown summary report for pangenome analysis.
 
@@ -412,6 +635,8 @@ def generate_comprehensive_markdown_report(
         family_stats: Family statistics by feature type
         output_file: Path to markdown output file
         run_metadata: Optional metadata about the analysis run
+        family_assignments: Optional family assignments for heatmap generation
+        id_manager: Optional ID manager for heatmap generation
 
     Creates:
         - Comprehensive markdown report with 8 major sections
@@ -419,6 +644,7 @@ def generate_comprehensive_markdown_report(
         - Detailed methodology and parameter documentation
         - Complete output file inventory with descriptions
         - Professional-quality analysis documentation
+        - Publication-quality visualizations (PNG images)
     """
     logger = logging.getLogger(__name__)
     logger.info(f"Generating comprehensive markdown report: {output_file}")
@@ -444,6 +670,20 @@ def generate_comprehensive_markdown_report(
     # Generate timestamp
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    # Generate visualizations
+    output_dir = str(Path(output_file).parent)
+
+    if rarefaction_data and rarefaction_data.get("pangenome"):
+        _create_rarefaction_plot(rarefaction_data, output_dir)
+
+    _create_classification_pie(total_families, output_dir)
+    _create_feature_type_bars(family_stats, output_dir)
+
+    if family_assignments and id_manager:
+        _create_presence_absence_heatmap(
+            family_assignments, id_manager, output_dir, top_n=50
+        )
+
     # Create comprehensive markdown report
     with open(output_file, "w") as f:
         # Header
@@ -455,38 +695,18 @@ def generate_comprehensive_markdown_report(
         f.write("## Executive Summary\n\n")
         f.write("### Key Findings\n\n")
 
+        # Get genome count from rarefaction data or metadata
         if (
             rarefaction_data
             and "pangenome" in rarefaction_data
             and rarefaction_data["pangenome"]
         ):
             max_genomes = rarefaction_data["pangenome"][-1][0]
-            final_pangenome = rarefaction_data["pangenome"][-1][1]
-            final_core = (
-                rarefaction_data["core"][-1][1] if "core" in rarefaction_data else 0
-            )
-
             f.write(f"- **Dataset**: {max_genomes} genomes analyzed\n")
-            f.write(f"- **Pangenome size**: {final_pangenome:.0f} gene families\n")
-            f.write(
-                f"- **Core genome**: {final_core:.0f} families ({final_core/final_pangenome*100:.1f}%)\n"
-            )
-            f.write(
-                f"- **Total families**: {total_all_families:,} across all feature types\n"
-            )
 
-            if (
-                "error" not in openness_analysis
-                and "pangenome_type" in openness_analysis
-            ):
-                f.write(
-                    f"- **Pangenome type**: {openness_analysis['pangenome_type'].upper()}\n"
-                )
-        else:
-            f.write(
-                f"- **Total families**: {total_all_families:,} across all feature types\n"
-            )
-
+        f.write(
+            f"- **Total families**: {total_all_families:,} across all feature types\n"
+        )
         f.write(
             f"- **Core families**: {total_families['core']:,} ({total_families['core']/total_all_families*100:.1f}%)\n"
         )
@@ -494,8 +714,15 @@ def generate_comprehensive_markdown_report(
             f"- **Accessory families**: {total_families['accessory']:,} ({total_families['accessory']/total_all_families*100:.1f}%)\n"
         )
         f.write(
-            f"- **Cloud families**: {total_families['cloud']:,} ({total_families['cloud']/total_all_families*100:.1f}%)\n\n"
+            f"- **Cloud families**: {total_families['cloud']:,} ({total_families['cloud']/total_all_families*100:.1f}%)\n"
         )
+
+        if "error" not in openness_analysis and "pangenome_type" in openness_analysis:
+            f.write(
+                f"- **Pangenome type**: {openness_analysis['pangenome_type'].upper()}\n"
+            )
+
+        f.write("\n")
 
         # Analysis Configuration
         f.write("## Analysis Configuration\n\n")
@@ -572,6 +799,14 @@ def generate_comprehensive_markdown_report(
 
         # Rarefaction Analysis
         f.write("### Rarefaction Curve Analysis\n\n")
+
+        # Embed rarefaction plot if it exists
+        if rarefaction_data and rarefaction_data.get("pangenome"):
+            f.write("![Rarefaction Curves](visualizations/rarefaction_curves.png)\n\n")
+            f.write(
+                "*Figure 1: Pangenome rarefaction curves showing the accumulation of gene families as genomes are added sequentially. Curves represent averaged results from 100 random genome orderings.*\n\n"
+            )
+
         if (
             rarefaction_data
             and "pangenome" in rarefaction_data
@@ -619,19 +854,45 @@ def generate_comprehensive_markdown_report(
             f.write(f"| {feature_name} | {family_count:,} | {percentage:.1f}% |\n")
         f.write(f"| **Total** | **{total_all_families:,}** | **100.0%** |\n\n")
 
+        # Embed feature type bar chart
+        f.write(
+            "![Feature Type Distribution](visualizations/feature_type_distribution.png)\n\n"
+        )
+        f.write(
+            "*Figure 2: Distribution of gene families across different genomic feature types (proteins, intergenic regions, tRNAs, rRNAs, CRISPR elements).*\n\n"
+        )
+
         # Statistical Summary
         f.write("### Family Size Distribution\n\n")
-        f.write("| Classification | Count | Percentage | Biological Significance |\n")
-        f.write("|---------------|--------|------------|------------------------|\n")
+        f.write("| Classification | Count | Percentage | Definition |\n")
+        f.write("|---------------|--------|------------|------------|\n")
         f.write(
-            f"| Core families | {total_families['core']:,} | {total_families['core']/total_all_families*100:.1f}% | Essential functions shared by all genomes |\n"
+            f"| Core families | {total_families['core']:,} | {total_families['core']/total_all_families*100:.1f}% | Present in ≥95% of genomes |\n"
         )
         f.write(
-            f"| Accessory families | {total_families['accessory']:,} | {total_families['accessory']/total_all_families*100:.1f}% | Variable functions for adaptation |\n"
+            f"| Accessory families | {total_families['accessory']:,} | {total_families['accessory']/total_all_families*100:.1f}% | Present in 15-95% of genomes |\n"
         )
         f.write(
-            f"| Cloud families | {total_families['cloud']:,} | {total_families['cloud']/total_all_families*100:.1f}% | Rare or strain-specific functions |\n\n"
+            f"| Cloud families | {total_families['cloud']:,} | {total_families['cloud']/total_all_families*100:.1f}% | Present in <15% of genomes |\n\n"
         )
+
+        # Embed classification pie chart
+        f.write(
+            "![Family Classification](visualizations/family_classification.png)\n\n"
+        )
+        f.write(
+            "*Figure 3: Proportional distribution of gene families by classification (core, accessory, cloud) based on genome presence frequency.*\n\n"
+        )
+
+        # Add presence/absence heatmap section if data available
+        if family_assignments and id_manager:
+            f.write("### Presence/Absence Patterns\n\n")
+            f.write(
+                "![Presence/Absence Heatmap](visualizations/presence_absence_heatmap.png)\n\n"
+            )
+            f.write(
+                "*Figure 4: Presence/absence patterns for the top 50 most variable gene families across all analyzed genomes. Blue indicates presence, white indicates absence.*\n\n"
+            )
 
         # Output Files Section
         f.write("## Generated Output Files\n\n")
@@ -650,6 +911,22 @@ def generate_comprehensive_markdown_report(
         f.write(
             "- **`pangenome_structure_curves.csv`** - Visualization-ready curve data\n\n"
         )
+
+        f.write("### Visualizations\n")
+        f.write(
+            "- **`visualizations/rarefaction_curves.png`** - Pangenome growth curves\n"
+        )
+        f.write(
+            "- **`visualizations/feature_type_distribution.png`** - Feature type bar chart\n"
+        )
+        f.write(
+            "- **`visualizations/family_classification.png`** - Core/accessory/cloud pie chart\n"
+        )
+        if family_assignments and id_manager:
+            f.write(
+                "- **`visualizations/presence_absence_heatmap.png`** - Variable family heatmap\n"
+            )
+        f.write("\n")
 
         f.write("### Core Pipeline Outputs\n")
         f.write(
