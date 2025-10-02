@@ -11,13 +11,13 @@ This module provides fundamental pangenome analysis capabilities including:
 All analyses follow established pangenome literature methods.
 """
 
+import datetime
 import json
 import logging
-import os
 import random
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from .clustering import FamilyStats
 from .compact_ids import CompactIDManager
@@ -426,9 +426,6 @@ def generate_comprehensive_markdown_report(
         - Complete output file inventory with descriptions
         - Professional-quality analysis documentation
     """
-    import datetime
-    from pathlib import Path
-
     logger = logging.getLogger(__name__)
     logger.info(f"Generating comprehensive markdown report: {output_file}")
 
@@ -440,10 +437,13 @@ def generate_comprehensive_markdown_report(
         run_metadata = {}
 
     # Calculate summary statistics
-    total_families = {"core": 0, "accessory": 0, "cloud": 0}
+    total_families = {"core": 0, "accessory": 0, "cloud": 0, "singleton": 0}
     for feature_type, stats_dict in family_stats.items():
         for family_id, stats in stats_dict.items():
-            total_families[stats.classification] += 1
+            classification = stats.classification
+            if classification not in total_families:
+                total_families[classification] = 0
+            total_families[classification] += 1
 
     total_all_families = sum(total_families.values())
 

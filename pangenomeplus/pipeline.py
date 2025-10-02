@@ -14,6 +14,7 @@ Key Features:
 - Memory-efficient genome-by-genome processing
 """
 
+import csv
 import json
 import logging
 import os
@@ -569,6 +570,50 @@ def load_checkpoint(checkpoint_file: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+def save_gene_to_family_mappings(
+    family_assignments: Dict[str, Dict[str, str]],
+    id_manager: CompactIDManager,
+    output_dir: str,
+    logger: logging.Logger,
+) -> str:
+    """Save gene-to-family mappings as TSV file.
+
+    Implements CLAUDE.md Stage 4 output requirement.
+
+    Args:
+        family_assignments: Dict mapping feature types to (compact_id -> family_id)
+        id_manager: CompactIDManager for genome information
+        output_dir: Output directory for TSV file
+        logger: Logger instance
+
+    Returns:
+        Path to generated gene_to_family.tsv file
+    """
+    families_dir = os.path.join(output_dir, "families")
+    os.makedirs(families_dir, exist_ok=True)
+
+    output_file = os.path.join(families_dir, "gene_to_family.tsv")
+
+    total_assignments = 0
+    with open(output_file, "w") as f:
+        writer = csv.writer(f, delimiter="\t")
+        writer.writerow(["compact_id", "family_id", "genome_id", "feature_type"])
+
+        for feature_type, assignments in sorted(family_assignments.items()):
+            for compact_id, family_id in sorted(assignments.items()):
+                feature = id_manager.get_feature_by_compact_id(compact_id)
+                if feature:
+                    writer.writerow(
+                        [compact_id, family_id, feature.genome_id, feature_type]
+                    )
+                    total_assignments += 1
+
+    logger.info(
+        f"Gene-to-family mappings saved: {output_file} ({total_assignments:,} assignments)"
+    )
+    return output_file
+
+
 def save_feature_mappings(
     output_dir: str, id_manager: CompactIDManager, processed_genomes: List[str]
 ) -> str:
@@ -634,7 +679,7 @@ def run_clustering_stage(
     config: PipelineConfig,
     total_genomes: int,
     logger: logging.Logger,
-) -> Dict[str, Dict[str, FamilyStats]]:
+) -> Tuple[Dict[str, Dict[str, str]], Dict[str, Dict[str, FamilyStats]]]:
     """Run clustering stage on all extracted features.
 
     Args:
@@ -644,7 +689,9 @@ def run_clustering_stage(
         logger: Logger instance
 
     Returns:
-        Dictionary mapping feature type to family statistics
+        Tuple of (family_assignments, family_stats):
+        - family_assignments: Dict mapping feature type to (compact_id -> family_id)
+        - family_stats: Dict mapping feature type to (family_id -> FamilyStats)
 
     Raises:
         ClusteringError: If clustering fails
@@ -663,6 +710,7 @@ def run_clustering_stage(
         "CRISPR": "C",
     }
 
+    all_family_assignments: Dict[str, Dict[str, str]] = {}
     all_family_stats = {}
 
     for feature_name, feature_type in feature_type_map.items():
@@ -693,9 +741,11 @@ def run_clustering_stage(
                 total_genomes=total_genomes,
             )
 
+            # Store both assignments and stats
+            all_family_assignments[feature_type] = compact_to_family
             all_family_stats[feature_type] = family_stats
 
-            # Update id_manager with family assignments (if we extend it later)
+            # Log clustering results
             multi_member = [
                 f for f in family_stats.values() if f.classification != "singleton"
             ]
@@ -710,7 +760,7 @@ def run_clustering_stage(
             continue
 
     logger.info("Clustering stage completed")
-    return all_family_stats
+    return all_family_assignments, all_family_stats
 
 
 def _should_skip_feature_type(feature_type: str, config: PipelineConfig) -> bool:
@@ -984,10 +1034,13 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
     stats.end_time = time.time()
 
     # Run clustering stage if any genomes were processed
+    family_assignments: Dict[str, Dict[str, str]] = {}
+    all_family_stats: Dict[str, Dict[str, FamilyStats]] = {}
+
     if stats.processed_genomes > 0 and stats.total_features > 0:
         logger.info("Starting clustering stage")
         try:
-            all_family_stats = run_clustering_stage(
+            family_assignments, all_family_stats = run_clustering_stage(
                 id_manager=id_manager,
                 config=config,
                 total_genomes=stats.processed_genomes,
@@ -1003,6 +1056,12 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
         except ClusteringError as e:
             logger.error(f"Clustering stage failed: {e}")
             logger.warning("Continuing without clustering results")
+
+    # Save gene-to-family mappings (CLAUDE.md Stage 4 output)
+    if family_assignments and stats.processed_genomes > 0:
+        save_gene_to_family_mappings(
+            family_assignments, id_manager, config.output_dir, logger
+        )
 
     # Save final mappings
     if stats.processed_genomes > 0:
@@ -1056,13 +1115,85 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
         logger.warning(f"Failed genomes: {', '.join(failed_genomes)}")
 
     # Run downstream analysis if requested
-    if config.enable_downstream_analysis and stats.processed_genomes > 0:
-        logger.warning(
-            "Downstream analysis modules are available but not yet integrated into the pipeline."
-        )
-        logger.info(
-            "Use pangenomeplus.outputs and pangenomeplus.pangenome_analysis modules directly."
-        )
+    if (
+        config.enable_downstream_analysis
+        and stats.processed_genomes > 0
+        and family_assignments
+    ):
+        logger.info("=" * 60)
+        logger.info("Starting downstream pangenome analysis...")
+        logger.info("=" * 60)
+
+        try:
+            from .outputs import generate_all_outputs
+            from .pangenome_analysis import (
+                analyze_pangenome_openness,
+                calculate_rarefaction_curve,
+                generate_comprehensive_markdown_report,
+            )
+
+            # Generate all output formats
+            logger.info("Generating output files...")
+            output_files = generate_all_outputs(
+                family_assignments=family_assignments,
+                family_stats=all_family_stats,
+                id_manager=id_manager,
+                output_dir=config.output_dir,
+                total_genomes=stats.processed_genomes,
+                logger=logger,
+            )
+
+            logger.info("Output generation complete:")
+            for output_type, path in output_files.items():
+                if isinstance(path, dict):
+                    logger.info(f"  {output_type}:")
+                    for subtype, subpath in path.items():
+                        logger.info(f"    - {subtype}: {subpath}")
+                else:
+                    logger.info(f"  - {output_type}: {path}")
+
+            # Calculate rarefaction curves
+            logger.info("")
+            logger.info("Calculating rarefaction curves...")
+            rarefaction_data = calculate_rarefaction_curve(
+                family_assignments=family_assignments,
+                id_manager=id_manager,
+                max_genomes=None,
+                iterations=config.rarefaction_iterations,
+                step_size=config.rarefaction_step_size,
+            )
+
+            # Analyze pangenome openness
+            logger.info("Analyzing pangenome openness...")
+            openness_analysis = analyze_pangenome_openness(
+                rarefaction_data=rarefaction_data,
+            )
+
+            logger.info(
+                f"  Pangenome status: {openness_analysis.get('classification', 'unknown')}"
+            )
+
+            # Generate comprehensive report
+            logger.info("")
+            logger.info("Generating comprehensive markdown report...")
+            report_file = os.path.join(config.output_dir, "pangenome_report.md")
+            generate_comprehensive_markdown_report(
+                rarefaction_data=rarefaction_data,
+                openness_analysis=openness_analysis,
+                family_stats=all_family_stats,
+                output_file=report_file,
+            )
+
+            logger.info("")
+            logger.info("=" * 60)
+            logger.info("Downstream analysis completed successfully!")
+            logger.info(f"Comprehensive report: {report_file}")
+            logger.info("=" * 60)
+
+        except Exception as e:
+            logger.error(f"Downstream analysis failed: {e}", exc_info=True)
+            logger.warning("Pipeline completed but downstream analysis had errors")
+            logger.warning("Check log file for details")
 
     # Clean up checkpoint if all successful
     if stats.failed_genomes == 0 and os.path.exists(checkpoint_file):
