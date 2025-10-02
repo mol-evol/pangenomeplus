@@ -487,15 +487,42 @@ Check `family_summary.tsv` for family statistics:
 
 ## Example Dataset
 
-The `example_data/` directory contains 3 *E. coli* genomes for testing:
+The `example_6_genomes/` directory contains 6 *E. coli* genomes for demonstration:
 
 ```bash
-# Run example analysis
-pangenomeplus --genome-dir example_data/ --output-dir example_output/
+# Run complete analysis with visualizations
+pangenomeplus --genome-dir example_6_genomes/ \
+              --output-dir example_output/ \
+              --enable-downstream-analysis
 
-# Expected runtime: 2-5 minutes
-# Expected core families: ~3,500 protein families
+# Runtime: ~2 minutes on standard hardware
 ```
+
+### Example Results
+
+Analysis of 6 *E. coli* genomes produced:
+- **Total gene families**: 6,816 (across all feature types)
+- **Core families** (≥95%): 6,520 families (95.7%)
+- **Accessory families** (15-95%): 296 families (4.3%)
+- **Cloud families** (<15%): 0 families
+
+**By feature type**:
+- Proteins: 4,205 families (4,167 core + 38 accessory)
+- Intergenic regions: 2,317 families (2,301 core + 16 accessory)
+- tRNAs: 54 families (all core)
+- rRNAs: 3 families (all core)
+
+![Rarefaction Curves](README_images/rarefaction_curves.png)
+*Figure 1: Pangenome growth curve showing family accumulation across 6 E. coli genomes.*
+
+![Feature Type Distribution](README_images/feature_type_distribution.png)
+*Figure 2: Distribution of gene families by feature type (proteins, intergenic regions, tRNAs, rRNAs).*
+
+![Family Classification](README_images/family_classification.png)
+*Figure 3: Proportional distribution of core and accessory families (96% core, 4% accessory).*
+
+![Presence/Absence Heatmap](README_images/presence_absence_heatmap.png)
+*Figure 4: Presence/absence patterns for the 50 most variable gene families across all 6 genomes.*
 
 ## Troubleshooting
 
