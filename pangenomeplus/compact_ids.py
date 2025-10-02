@@ -95,8 +95,8 @@ class CompactIDManager:
         # Forward mapping: compact_id -> Feature
         self.compact_to_full: Dict[str, Feature] = {}
 
-        # Reverse mapping: (genome_id, start, end) -> compact_id
-        self.location_to_compact: Dict[Tuple[str, int, int], str] = {}
+        # Reverse mapping: (genome_id, contig, start, end) -> compact_id
+        self.location_to_compact: Dict[Tuple[str, str, int, int], str] = {}
 
         # Genome-based mapping: genome_id -> {feature_type: [compact_ids]}
         self.genome_features: Dict[str, Dict[str, List[str]]] = defaultdict(
@@ -146,7 +146,7 @@ class CompactIDManager:
             CompactIDError: If compact_id or location already exists
         """
         compact_id = feature.compact_id
-        location_key = (feature.genome_id, feature.start, feature.end)
+        location_key = (feature.genome_id, feature.contig, feature.start, feature.end)
 
         # Check for duplicate compact ID
         if compact_id in self.compact_to_full:
@@ -177,20 +177,21 @@ class CompactIDManager:
         return self.compact_to_full.get(compact_id)
 
     def get_compact_id_by_location(
-        self, genome_id: str, start: int, end: int
+        self, genome_id: str, contig: str, start: int, end: int
     ) -> Optional[str]:
         """
         Retrieve compact ID by genomic location.
 
         Args:
             genome_id: Genome identifier
+            contig: Contig identifier
             start: Start coordinate
             end: End coordinate
 
         Returns:
             Compact ID or None if not found
         """
-        location_key = (genome_id, start, end)
+        location_key = (genome_id, contig, start, end)
         return self.location_to_compact.get(location_key)
 
     def get_features_for_genome(self, genome_id: str) -> Optional[Dict[str, List[str]]]:

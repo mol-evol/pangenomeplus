@@ -380,9 +380,21 @@ class TestFeatureExtraction:
 
             with patch("pangenomeplus.extraction.run_prodigal") as mock_prodigal, patch(
                 "pangenomeplus.extraction.parse_prodigal_gff"
-            ) as mock_parse:
+            ) as mock_parse_prodigal, patch(
+                "pangenomeplus.extraction.run_trnascan"
+            ) as mock_trna, patch(
+                "pangenomeplus.extraction.parse_trnascan_output"
+            ) as mock_parse_trna, patch(
+                "pangenomeplus.extraction.run_barrnap"
+            ) as mock_barrnap, patch(
+                "pangenomeplus.extraction.parse_barrnap_gff"
+            ) as mock_parse_barrnap, patch(
+                "pangenomeplus.extraction.run_minced"
+            ) as mock_minced, patch(
+                "pangenomeplus.extraction.parse_minced_output"
+            ) as mock_parse_minced:
                 mock_prodigal.return_value = "/fake/gff/file"
-                mock_parse.return_value = [
+                mock_parse_prodigal.return_value = [
                     Feature(
                         compact_id="P1",
                         genome_id="test_genome",
@@ -408,6 +420,16 @@ class TestFeatureExtraction:
                         metadata={},
                     ),
                 ]
+
+                # Mock non-coding tools and parsers - test focuses on intergenic detection
+                mock_trna.return_value = "/fake/trna/file"
+                mock_parse_trna.return_value = []  # No tRNAs found
+
+                mock_barrnap.return_value = "/fake/barrnap/file"
+                mock_parse_barrnap.return_value = []  # No rRNAs found
+
+                mock_minced.return_value = "/fake/minced/file"
+                mock_parse_minced.return_value = []  # No CRISPR found
 
                 features = extract_genome_features(
                     genome_file, "test_genome", tmpdir, id_manager

@@ -95,6 +95,7 @@ def run_trnascan(
     output_dir: str,
     model: str = "bacteria",
     score_cutoff: float = 20.0,
+    search_mode: str = "normal",
 ) -> str:
     """Run tRNAscan-SE for tRNA detection.
 
@@ -340,9 +341,7 @@ def parse_minced_output(
                                 strand=".",  # CRISPR spacers don't have inherent strand
                                 sequence=spacer_seq,
                                 feature_type="C",
-                                original_id=(
-                                    f"crispr_spacer_{spacer_count + 1}"
-                                ),
+                                original_id=(f"crispr_spacer_{spacer_count + 1}"),
                                 metadata={
                                     "product": "CRISPR_spacer",
                                     "array_start": current_crispr_start,
@@ -431,8 +430,10 @@ def parse_prodigal_gff(
                         complement_map = str.maketrans("ATCG", "TAGC")
                         sequence = sequence.translate(complement_map)[::-1]
                 except IndexError:
+                    contig_len = len(contig_sequences.get(contig, ""))
                     raise ExtractionError(
-                        f"Invalid coordinates: {start}-{end} for contig {contig} length {len(contig_sequences.get(contig, ''))}"
+                        f"Invalid coordinates: {start}-{end} for contig {contig} "
+                        f"length {contig_len}"
                     )
 
                 # Generate compact ID
@@ -586,6 +587,171 @@ def calculate_intergenic_regions(
     return intergenic_features
 
 
+def parse_trnascan_output(
+    trnascan_file: str, genome_file: str, genome_id: str, id_manager: CompactIDManager
+) -> List[Feature]:
+    """Parse tRNAscan-SE output and create Feature objects.
+
+    Args:
+        trnascan_file: Path to tRNAscan-SE output file
+        genome_file: Path to genome FASTA file
+        genome_id: Genome identifier
+        id_manager: CompactIDManager for ID assignment
+
+    Returns:
+        List of tRNA Feature objects
+    """
+    tRNA_features = []
+
+    # Load genome sequences (handle multi-contig genomes)
+    genome_seqs = {record.id: record for record in SeqIO.parse(genome_file, "fasta")}
+
+    with open(trnascan_file, "r") as f:
+        for line in f:
+            line = line.strip()
+            if (
+                not line
+                or line.startswith("Sequence")
+                or line.startswith("Name")
+                or line.startswith("---")
+            ):
+                continue
+
+            fields = line.split("\t")
+            if len(fields) < 9:
+                continue
+
+            # Strip whitespace from all fields (tRNAscan-SE adds trailing spaces)
+            contig = fields[0].strip()
+            start_raw = int(fields[2].strip())
+            end_raw = int(fields[3].strip())
+            trna_type = fields[4].strip()
+            anticodon = fields[5].strip()
+            score = float(fields[8].strip())
+
+            # Determine strand and normalize coordinates
+            # tRNAscan-SE outputs start > end for reverse strand
+            if start_raw > end_raw:
+                start = end_raw
+                end = start_raw
+                strand = "-"
+            else:
+                start = start_raw
+                end = end_raw
+                strand = "+"
+
+            # Extract sequence from correct contig
+            if contig not in genome_seqs:
+                continue  # Skip if contig not found
+            sequence = str(genome_seqs[contig].seq[start - 1 : end])
+
+            # Create compact ID
+            compact_id = id_manager.generate_compact_id("T")
+
+            # Create feature
+            feature = Feature(
+                compact_id=compact_id,
+                genome_id=genome_id,
+                contig=contig,
+                start=start,
+                end=end,
+                strand=strand,
+                sequence=sequence,
+                feature_type="T",
+                original_id=f"tRNA-{trna_type}-{anticodon}",
+                metadata={
+                    "product": f"tRNA-{trna_type}",
+                    "anticodon": anticodon,
+                    "score": score,
+                    "trna_type": trna_type,
+                },
+            )
+
+            tRNA_features.append(feature)
+            id_manager.register_feature(feature)
+
+    return tRNA_features
+
+
+def parse_barrnap_gff(
+    barrnap_file: str, genome_file: str, genome_id: str, id_manager: CompactIDManager
+) -> List[Feature]:
+    """Parse Barrnap GFF output and create Feature objects.
+
+    Args:
+        barrnap_file: Path to Barrnap GFF output file
+        genome_file: Path to genome FASTA file
+        genome_id: Genome identifier
+        id_manager: CompactIDManager for ID assignment
+
+    Returns:
+        List of rRNA Feature objects
+    """
+    rRNA_features = []
+
+    # Load genome sequences (handle multi-contig genomes)
+    genome_seqs = {record.id: record for record in SeqIO.parse(genome_file, "fasta")}
+
+    with open(barrnap_file, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+
+            fields = line.split("\t")
+            if len(fields) < 9:
+                continue
+
+            contig = fields[0]
+            start = int(fields[3])
+            end = int(fields[4])
+            score = fields[5]
+            strand = fields[6]
+            attributes = fields[8]
+
+            # Parse attributes for Name and product
+            name = ""
+            product = ""
+            for attr in attributes.split(";"):
+                if attr.startswith("Name="):
+                    name = attr.split("=")[1]
+                elif attr.startswith("product="):
+                    product = attr.split("=")[1]
+
+            # Extract sequence from correct contig
+            if contig not in genome_seqs:
+                continue  # Skip if contig not found
+
+            if strand == "-":
+                sequence = str(
+                    genome_seqs[contig].seq[start - 1 : end].reverse_complement()
+                )
+            else:
+                sequence = str(genome_seqs[contig].seq[start - 1 : end])
+
+            # Create compact ID
+            compact_id = id_manager.generate_compact_id("R")
+
+            # Create feature
+            feature = Feature(
+                compact_id=compact_id,
+                genome_id=genome_id,
+                contig=contig,
+                start=start,
+                end=end,
+                strand=strand,
+                sequence=sequence,
+                feature_type="R",
+                original_id=name,
+                metadata={"product": product, "score": score, "rRNA_type": name},
+            )
+
+            rRNA_features.append(feature)
+            id_manager.register_feature(feature)
+
+    return rRNA_features
+
+
 def extract_genome_features(
     genome_file: str,
     genome_id: str,
@@ -715,13 +881,53 @@ def extract_genome_features(
                 genome_id=genome_id,
                 id_manager=id_manager,
             )
-            all_features["crispr"] = crispr_features
+            all_features["CRISPR"] = crispr_features
 
         except Exception as e:
             raise ExtractionError(f"CRISPR extraction failed for {genome_id}: {e}")
 
-    # TODO: Implement tRNA and rRNA extraction in future phases
-    # These will follow similar patterns with their respective parsing functions
-    # Parameters skip_trna and skip_rrna will be used then
+    # 4. tRNA detection with tRNAscan-SE
+    if not skip_trna:
+        try:
+            trna_params = tool_params.get("trna", {})
+
+            # Run tRNAscan-SE to detect tRNAs
+            trnascan_output = run_trnascan(
+                genome_file=genome_file, output_dir=genome_output_dir, **trna_params
+            )
+
+            # Parse tRNAscan-SE output and create features
+            trna_features = parse_trnascan_output(
+                trnascan_file=trnascan_output,
+                genome_file=genome_file,
+                genome_id=genome_id,
+                id_manager=id_manager,
+            )
+            all_features["tRNAs"] = trna_features
+
+        except Exception as e:
+            raise ExtractionError(f"tRNA extraction failed for {genome_id}: {e}")
+
+    # 5. rRNA detection with Barrnap
+    if not skip_rrna:
+        try:
+            rrna_params = tool_params.get("rrna", {})
+
+            # Run Barrnap to detect rRNAs
+            barrnap_output = run_barrnap(
+                genome_file=genome_file, output_dir=genome_output_dir, **rrna_params
+            )
+
+            # Parse Barrnap output and create features
+            rrna_features = parse_barrnap_gff(
+                barrnap_file=barrnap_output,
+                genome_file=genome_file,
+                genome_id=genome_id,
+                id_manager=id_manager,
+            )
+            all_features["rRNAs"] = rrna_features
+
+        except Exception as e:
+            raise ExtractionError(f"rRNA extraction failed for {genome_id}: {e}")
 
     return all_features

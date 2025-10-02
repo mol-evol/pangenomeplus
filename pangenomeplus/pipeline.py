@@ -17,8 +17,10 @@ Key Features:
 import json
 import logging
 import os
+import random
+import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -26,6 +28,156 @@ from .clustering import ClusteringError, FamilyStats, cluster_features_by_type
 from .compact_ids import CompactIDManager
 from .core import Feature
 from .extraction import ExtractionError, extract_genome_features
+
+# Playful status messages for genomics analysis
+STATUS_MESSAGES = [
+    "brewing gene soup",
+    "herding chromosomes",
+    "untangling DNA spaghetti",
+    "fishing for genes",
+    "spelunking through genomes",
+    "wrangling proteins",
+    "excavating CRISPR fossils",
+    "consulting the genome oracle",
+    "divining genes",
+    "summoning homologs",
+    "charting genetic territory",
+    "deciphering genome scrolls",
+    "mixing genetic potions",
+    "combing through base pairs",
+    "juggling nucleotides",
+    "taming wild genes",
+    "polishing protein crystals",
+    "weaving sequence tapestries",
+    "harvesting gene families",
+    "chasing rogue HGTs",
+    "corralling mobile elements",
+    "sifting through genetic sand",
+    "distilling core genes",
+    "knitting consensus sequences",
+    "seasoning the pangenome",
+    "marinating sequences",
+    "fermenting gene clusters",
+    "coaxing out annotations",
+    "sweet-talking the genome",
+    "befriending bugs",
+    "negotiating with nucleotides",
+    "interrogating genomes",
+    "cross-examining sequences",
+    "investigating gene suspects",
+    "solving the protein puzzle",
+    "cracking the genetic code",
+    "following DNA breadcrumbs",
+    "tracking mutation footprints",
+    "conducting the genome symphony",
+    "orchestrating gene expression",
+    "tuning genetic instruments",
+    "harmonizing sequences",
+    "choreographing proteins",
+    "composing genetic melodies",
+    "pruning gene trees",
+    "cultivating gene gardens",
+    "planting sequence seeds",
+    "watering the pangenome",
+    "grafting gene branches",
+    "trimming phylogenetic hedges",
+    "mining for genes",
+    "prospecting for proteins",
+    "panning for gold genes",
+    "unearthing genetic treasures",
+    "discovering hidden orthologs",
+    "claiming gene territory",
+    "cataloging genetic archives",
+    "shelving gene libraries",
+    "indexing chromosome chapters",
+    "bookmarking conserved regions",
+    "dog-earing important genes",
+    "filing sequence records",
+]
+
+
+def extract_genome_name(genome_file: str) -> str:
+    """Extract a display-friendly genome name from file path."""
+    return Path(genome_file).stem
+
+
+def format_time(seconds: float) -> str:
+    """Format seconds into MM:SS string."""
+    minutes = int(seconds // 60)
+    secs = int(seconds % 60)
+    return f"{minutes:02d}:{secs:02d}"
+
+
+class SingleLineProgress:
+    """Single-line progress indicator with spinner and metrics."""
+
+    def __init__(self, total: int, playful: bool = True) -> None:
+        """Initialize progress tracker.
+
+        Args:
+            total: Total number of items to process
+            playful: Whether to show playful status messages
+        """
+        self.total = total
+        self.current = 0
+        self.playful = playful
+        self.spinners = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+        self.spinner_idx = 0
+        self.start_time = time.time()
+        self.terminal_width = 120  # Conservative terminal width
+
+    def update(self, genome_name: str, status_msg: str = "") -> None:
+        """Update progress display.
+
+        Args:
+            genome_name: Name of current genome being processed
+            status_msg: Playful status message (optional)
+        """
+        # Calculate metrics
+        elapsed = time.time() - self.start_time
+        rate = self.current / elapsed if elapsed > 0 else 0
+        remaining_items = self.total - self.current
+        remaining_time = remaining_items / rate if rate > 0 else 0
+        pct = int(100 * self.current / self.total) if self.total > 0 else 0
+
+        # Get spinner character
+        spinner = self.spinners[self.spinner_idx % len(self.spinners)]
+        self.spinner_idx += 1
+
+        # Build message components
+        if self.playful and status_msg:
+            status_part = f"{status_msg} | "
+        else:
+            status_part = "Processing | "
+
+        # Shorten genome name if needed
+        max_genome_len = 30
+        if len(genome_name) > max_genome_len:
+            genome_name = genome_name[: max_genome_len - 3] + "..."
+
+        progress_part = f"[{self.current}/{self.total}] {pct}%"
+        rate_part = f"{rate:.1f} g/s"
+        time_part = format_time(remaining_time)
+
+        # Build complete message
+        msg = (
+            f"{spinner} {status_part}{genome_name} {progress_part} • "
+            f"{rate_part} • {time_part} remaining"
+        )
+
+        # Clear line and write message
+        sys.stdout.write("\r" + " " * self.terminal_width + "\r")
+        sys.stdout.write(msg[: self.terminal_width])
+        sys.stdout.flush()
+
+    def advance(self) -> None:
+        """Increment progress counter."""
+        self.current += 1
+
+    def finish(self) -> None:
+        """Complete progress and move to next line."""
+        sys.stdout.write("\n")
+        sys.stdout.flush()
 
 
 @dataclass
@@ -45,10 +197,10 @@ class PipelineConfig:
     non_coding_only: bool = False
 
     # Tool parameters
-    prodigal_params: Dict[str, Any] = None
-    trna_params: Dict[str, Any] = None
-    rrna_params: Dict[str, Any] = None
-    crispr_params: Dict[str, Any] = None
+    prodigal_params: Dict[str, Any] = field(default_factory=dict)
+    trna_params: Dict[str, Any] = field(default_factory=dict)
+    rrna_params: Dict[str, Any] = field(default_factory=dict)
+    crispr_params: Dict[str, Any] = field(default_factory=dict)
 
     # Performance settings
     resume: bool = True
@@ -63,15 +215,18 @@ class PipelineConfig:
     rarefaction_iterations: int = 100
     rarefaction_step_size: int = 1
 
-    def __post_init__(self):
+    # UI options
+    playful_mode: bool = True
+
+    def __post_init__(self) -> None:
         """Initialize default parameters if not provided."""
-        if self.prodigal_params is None:
+        if not self.prodigal_params:
             self.prodigal_params = {"mode": "single", "translation_table": 11}
-        if self.trna_params is None:
+        if not self.trna_params:
             self.trna_params = {"model": "bacteria", "score_cutoff": 20.0}
-        if self.rrna_params is None:
+        if not self.rrna_params:
             self.rrna_params = {"kingdom": "bac", "evalue": 1e-6}
-        if self.crispr_params is None:
+        if not self.crispr_params:
             self.crispr_params = {
                 "min_repeats": 3,
                 "min_spacer_length": 26,
@@ -100,21 +255,21 @@ class ProcessingStats:
     processed_genomes: int = 0
     failed_genomes: int = 0
     total_features: int = 0
-    feature_counts: Dict[str, int] = None
+    feature_counts: Dict[str, int] = field(default_factory=dict)
     start_time: float = 0
     end_time: float = 0
 
     # Clustering statistics
     total_families: int = 0
-    family_counts: Dict[str, int] = None
-    singleton_counts: Dict[str, int] = None
+    family_counts: Dict[str, int] = field(default_factory=dict)
+    singleton_counts: Dict[str, int] = field(default_factory=dict)
     core_families: int = 0
     accessory_families: int = 0
     cloud_families: int = 0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize feature counts."""
-        if self.feature_counts is None:
+        if not self.feature_counts:
             self.feature_counts = {
                 "proteins": 0,
                 "intergenic": 0,
@@ -122,7 +277,7 @@ class ProcessingStats:
                 "rRNAs": 0,
                 "CRISPR": 0,
             }
-        if self.family_counts is None:
+        if not self.family_counts:
             self.family_counts = {
                 "P": 0,  # Protein families
                 "I": 0,  # Intergenic families
@@ -130,7 +285,7 @@ class ProcessingStats:
                 "R": 0,  # rRNA families
                 "C": 0,  # CRISPR families
             }
-        if self.singleton_counts is None:
+        if not self.singleton_counts:
             self.singleton_counts = {
                 "P": 0,  # Protein singletons
                 "I": 0,  # Intergenic singletons
@@ -279,7 +434,7 @@ def load_checkpoint(checkpoint_file: str) -> Optional[Dict[str, Any]]:
 
     try:
         with open(checkpoint_file, "r") as f:
-            return json.load(f)
+            return json.load(f)  # type: ignore[no-any-return]
     except (json.JSONDecodeError, IOError):
         return None
 
@@ -315,7 +470,7 @@ def save_feature_mappings(
 
     # Convert Feature objects to dicts for serialization
     for compact_id, feature in id_manager.compact_to_full.items():
-        mapping_data["compact_to_full"][compact_id] = {
+        mapping_data["compact_to_full"][compact_id] = {  # type: ignore[index]
             "compact_id": feature.compact_id,
             "genome_id": feature.genome_id,
             "contig": feature.contig,
@@ -329,9 +484,14 @@ def save_feature_mappings(
         }
 
     # Convert location tuples to strings for JSON serialization
-    for (genome_id, start, end), compact_id in id_manager.location_to_compact.items():
-        key = f"{genome_id}:{start}:{end}"
-        mapping_data["location_to_compact"][key] = compact_id
+    for (
+        genome_id,
+        contig,
+        start,
+        end,
+    ), compact_id in id_manager.location_to_compact.items():
+        key = f"{genome_id}: {contig}: {start}: {end}"
+        mapping_data["location_to_compact"][key] = compact_id  # type: ignore[index]
 
     with open(mappings_file, "w") as f:
         json.dump(mapping_data, f, indent=2)
@@ -406,10 +566,12 @@ def run_clustering_stage(
             all_family_stats[feature_type] = family_stats
 
             # Update id_manager with family assignments (if we extend it later)
+            multi_member = [
+                f for f in family_stats.values() if f.classification != "singleton"
+            ]
             logger.info(
                 f"  {feature_name}: {len(family_stats)} families "
-                f"({len([f for f in family_stats.values() if f.classification != 'singleton'])} "
-                f"multi-member families)"
+                f"({len(multi_member)} multi-member families)"
             )
 
         except ClusteringError as e:
@@ -544,6 +706,11 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
         logger.error(f"Genome discovery failed: {e}")
         raise
 
+    # Display header if playful mode is enabled
+    if config.playful_mode:
+        print(f"\nPanGenomePlus | Analyzing {stats.total_genomes} genomes")
+        print(f"Output directory: {config.output_dir}\n")
+
     # Initialize compact ID manager
     id_manager = CompactIDManager()
 
@@ -565,52 +732,123 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
     # Process each genome
     failed_genomes = []
 
-    for i, genome_file in enumerate(genome_files):
-        genome_id = Path(genome_file).stem
+    if config.playful_mode:
+        # Use single-line progress indicator for playful mode
+        progress = SingleLineProgress(
+            total=len(genome_files), playful=config.playful_mode
+        )
 
-        # Skip if already processed (resume functionality)
-        if genome_id in processed_genomes:
-            logger.debug(f"Skipping already processed genome: {genome_id}")
-            continue
+        for i, genome_file in enumerate(genome_files):
+            genome_id = Path(genome_file).stem
 
-        try:
-            # Process single genome
-            processed_id, features = process_single_genome(
-                genome_file, config, id_manager, logger
-            )
+            # Skip if already processed (resume functionality)
+            if genome_id in processed_genomes:
+                logger.debug(f"Skipping already processed genome: {genome_id}")
+                progress.advance()
+                continue
 
-            # Update statistics
-            stats.add_genome_features(features)
-            stats.processed_genomes += 1
-            processed_genomes.append(processed_id)
+            genome_name = extract_genome_name(genome_file)
+            status = random.choice(STATUS_MESSAGES)
 
-            # Progress reporting
-            percent_complete = ((i + 1) / stats.total_genomes) * 100
-            rate = stats.genomes_per_second
-            logger.info(
-                f"Progress: {percent_complete:.1f}% complete "
-                f"({stats.processed_genomes}/{stats.total_genomes}) "
-                f"Rate: {rate:.2f} genomes/sec"
-            )
+            # Update progress display
+            progress.update(genome_name, status)
 
-        except ExtractionError as e:
-            logger.warning(f"Genome processing failed, continuing: {e}")
-            failed_genomes.append(genome_id)
-            stats.failed_genomes += 1
-            continue
+            try:
+                # Process single genome
+                processed_id, features = process_single_genome(
+                    genome_file, config, id_manager, logger
+                )
 
-        # Create checkpoint every 10 genomes
-        if (i + 1) % 10 == 0 or (i + 1) == len(genome_files):
-            checkpoint_data = {
-                "processed_genomes": processed_genomes,
-                "processed_count": stats.processed_genomes,
-                "failed_count": stats.failed_genomes,
-                "failed_genomes": failed_genomes,
-                "feature_counts": stats.feature_counts,
-                "timestamp": time.time(),
-            }
-            create_checkpoint(checkpoint_file, checkpoint_data)
-            logger.debug(f"Checkpoint created at genome {i + 1}")
+                # Update statistics
+                stats.add_genome_features(features)
+                stats.processed_genomes += 1
+                processed_genomes.append(processed_id)
+
+                # Log completion with feature counts to file
+                protein_count = len(features.get("proteins", []))
+                intergenic_count = len(features.get("intergenic", []))
+                trna_count = len(features.get("tRNAs", []))
+                rrna_count = len(features.get("rRNAs", []))
+                crispr_count = len(features.get("CRISPR", []))
+
+                logger.info(
+                    f"✓ {genome_name}: {protein_count:,} proteins | "
+                    f"{intergenic_count:,} intergenic | {trna_count} tRNAs | "
+                    f"{rrna_count} rRNAs | {crispr_count} CRISPR"
+                )
+
+            except ExtractionError as e:
+                logger.warning(f"Genome processing failed, continuing: {e}")
+                logger.warning(f"✗ {genome_name}: Processing failed")
+                failed_genomes.append(genome_id)
+                stats.failed_genomes += 1
+
+            progress.advance()
+
+            # Create checkpoint every 10 genomes
+            if (i + 1) % 10 == 0 or (i + 1) == len(genome_files):
+                checkpoint_data = {
+                    "processed_genomes": processed_genomes,
+                    "processed_count": stats.processed_genomes,
+                    "failed_count": stats.failed_genomes,
+                    "failed_genomes": failed_genomes,
+                    "feature_counts": stats.feature_counts,
+                    "timestamp": time.time(),
+                }
+                create_checkpoint(checkpoint_file, checkpoint_data)
+                logger.debug(f"Checkpoint created at genome {i + 1}")
+
+        # Finish progress and move to new line
+        progress.finish()
+
+    else:
+        # Traditional mode for production environments
+        for i, genome_file in enumerate(genome_files):
+            genome_id = Path(genome_file).stem
+
+            # Skip if already processed (resume functionality)
+            if genome_id in processed_genomes:
+                logger.debug(f"Skipping already processed genome: {genome_id}")
+                continue
+
+            try:
+                # Process single genome
+                processed_id, features = process_single_genome(
+                    genome_file, config, id_manager, logger
+                )
+
+                # Update statistics
+                stats.add_genome_features(features)
+                stats.processed_genomes += 1
+                processed_genomes.append(processed_id)
+
+                # Progress reporting
+                percent_complete = ((i + 1) / stats.total_genomes) * 100
+                rate = stats.genomes_per_second
+                logger.info(
+                    f"Progress: {percent_complete:.1f}% complete "
+                    f"({stats.processed_genomes}/{stats.total_genomes}) "
+                    f"Rate: {rate:.2f} genomes/sec"
+                )
+
+            except ExtractionError as e:
+                logger.warning(f"Genome processing failed, continuing: {e}")
+                failed_genomes.append(genome_id)
+                stats.failed_genomes += 1
+                continue
+
+            # Create checkpoint every 10 genomes
+            if (i + 1) % 10 == 0 or (i + 1) == len(genome_files):
+                checkpoint_data = {
+                    "processed_genomes": processed_genomes,
+                    "processed_count": stats.processed_genomes,
+                    "failed_count": stats.failed_genomes,
+                    "failed_genomes": failed_genomes,
+                    "feature_counts": stats.feature_counts,
+                    "timestamp": time.time(),
+                }
+                create_checkpoint(checkpoint_file, checkpoint_data)
+                logger.debug(f"Checkpoint created at genome {i + 1}")
 
     # Finalize processing
     stats.end_time = time.time()
@@ -650,6 +888,10 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
     logger.info(f"Total features extracted: {stats.total_features}")
     logger.info(f"Processing time: {stats.processing_time:.1f} seconds")
     logger.info(f"Rate: {stats.genomes_per_second:.2f} genomes/second")
+
+    # Display completion message if playful mode is enabled
+    if config.playful_mode:
+        print("\n✓ Analysis complete")
 
     logger.info("Feature extraction summary:")
     for feature_type, count in stats.feature_counts.items():
@@ -692,7 +934,7 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
 
 
 def create_pipeline_config(
-    genome_dir: str, output_dir: str, **kwargs
+    genome_dir: str, output_dir: str, **kwargs: Any
 ) -> PipelineConfig:
     """Convenience function to create pipeline configuration.
 

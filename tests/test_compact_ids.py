@@ -206,7 +206,7 @@ class TestCompactIDManager:
         assert manager.compact_to_full["P1"] == feature
 
         # Reverse mapping should exist
-        location_key = ("E_coli_001", 47, 1450)
+        location_key = ("E_coli_001", "NZ_CP007265.1", 47, 1450)
         assert location_key in manager.location_to_compact
         assert manager.location_to_compact[location_key] == "P1"
 
@@ -303,15 +303,15 @@ class TestCompactIDManager:
         manager.register_feature(feature)
 
         # Successful lookup
-        result = manager.get_compact_id_by_location("E_coli_001", 100, 200)
+        result = manager.get_compact_id_by_location("E_coli_001", "contig1", 100, 200)
         assert result == "P1"
 
         # Failed lookup - wrong coordinates
-        result = manager.get_compact_id_by_location("E_coli_001", 100, 199)
+        result = manager.get_compact_id_by_location("E_coli_001", "contig1", 100, 199)
         assert result is None
 
         # Failed lookup - wrong genome
-        result = manager.get_compact_id_by_location("E_coli_002", 100, 200)
+        result = manager.get_compact_id_by_location("E_coli_002", "contig1", 100, 200)
         assert result is None
 
     def test_get_genome_features(self) -> None:

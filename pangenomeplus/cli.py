@@ -230,7 +230,10 @@ For more information, visit: https://github.com/your-org/pangenomeplus
     downstream.add_argument(
         "--enable-downstream-analysis",
         action="store_true",
-        help="Enable downstream pangenome analyses (rarefaction curves, openness analysis, summary reports)",
+        help=(
+            "Enable downstream pangenome analyses (rarefaction curves, "
+            "openness analysis, summary reports)"
+        ),
     )
     downstream.add_argument(
         "--rarefaction-iterations",
@@ -268,6 +271,17 @@ For more information, visit: https://github.com/your-org/pangenomeplus
         default="INFO",
         help="Logging verbosity level (default: INFO)",
     )
+    control.add_argument(
+        "--playful",
+        action="store_true",
+        default=True,
+        help="Enable playful status messages and rich output (default: True)",
+    )
+    control.add_argument(
+        "--no-playful",
+        action="store_true",
+        help="Disable playful mode for production environments",
+    )
 
     return parser
 
@@ -286,6 +300,9 @@ def validate_arguments(args: argparse.Namespace) -> None:
     # Validate mutually exclusive parameters
     if args.protein_only and args.non_coding_only:
         errors.append("Cannot specify both --protein-only and --non-coding-only")
+
+    if args.playful and args.no_playful:
+        errors.append("Cannot specify both --playful and --no-playful")
 
     # Validate parameter ranges
     if not (0.0 <= args.clustering_identity <= 1.0):
@@ -321,7 +338,8 @@ def validate_arguments(args: argparse.Namespace) -> None:
         repeat_parts = args.crispr_repeat_length_range.split(",")
         if len(repeat_parts) != 2:
             errors.append(
-                f"CRISPR repeat length range must have exactly 2 values, got {len(repeat_parts)}: '{args.crispr_repeat_length_range}'"
+                f"CRISPR repeat length range must have exactly 2 values, "
+                f"got {len(repeat_parts)}: '{args.crispr_repeat_length_range}'"
             )
         else:
             repeat_min, repeat_max = map(int, repeat_parts)
@@ -336,7 +354,8 @@ def validate_arguments(args: argparse.Namespace) -> None:
         spacer_parts = args.crispr_spacer_length_range.split(",")
         if len(spacer_parts) != 2:
             errors.append(
-                f"CRISPR spacer length range must have exactly 2 values, got {len(spacer_parts)}: '{args.crispr_spacer_length_range}'"
+                f"CRISPR spacer length range must have exactly 2 values, "
+                f"got {len(spacer_parts)}: '{args.crispr_spacer_length_range}'"
             )
         else:
             spacer_min, spacer_max = map(int, spacer_parts)
@@ -356,7 +375,8 @@ def validate_arguments(args: argparse.Namespace) -> None:
 
     if not genome_files:
         errors.append(
-            f"No genome files found in {args.genome_dir} (expected .fasta, .fna, or .fa)"
+            f"No genome files found in {args.genome_dir} "
+            "(expected .fasta, .fna, or .fa)"
         )
 
     if errors:
@@ -372,19 +392,24 @@ def args_to_config(args: argparse.Namespace) -> PipelineConfig:
     repeat_parts = args.crispr_repeat_length_range.split(",")
     if len(repeat_parts) != 2:
         raise ValueError(
-            f"CRISPR repeat length range must have exactly 2 values, got {len(repeat_parts)}: '{args.crispr_repeat_length_range}'"
+            f"CRISPR repeat length range must have exactly 2 values, "
+            f"got {len(repeat_parts)}: '{args.crispr_repeat_length_range}'"
         )
     repeat_min, repeat_max = map(int, repeat_parts)
 
     spacer_parts = args.crispr_spacer_length_range.split(",")
     if len(spacer_parts) != 2:
         raise ValueError(
-            f"CRISPR spacer length range must have exactly 2 values, got {len(spacer_parts)}: '{args.crispr_spacer_length_range}'"
+            f"CRISPR spacer length range must have exactly 2 values, "
+            f"got {len(spacer_parts)}: '{args.crispr_spacer_length_range}'"
         )
     spacer_min, spacer_max = map(int, spacer_parts)
 
     # Handle resume logic
     resume = args.resume and not args.no_resume
+
+    # Handle playful mode logic
+    playful_mode = args.playful and not args.no_playful
 
     # Build parameter dictionaries
     prodigal_params = {
@@ -429,6 +454,7 @@ def args_to_config(args: argparse.Namespace) -> PipelineConfig:
         rarefaction_iterations=args.rarefaction_iterations,
         rarefaction_step_size=args.rarefaction_step_size,
         use_existing_annotations=args.use_existing_annotations,
+        playful_mode=playful_mode,
     )
 
     return config
@@ -473,7 +499,9 @@ def main() -> int:
         logger.info(f"Processed {stats.processed_genomes} genomes")
         logger.info(f"Generated {stats.total_families} gene families")
         logger.info(
-            f"Core: {stats.core_families}, Accessory: {stats.accessory_families}, Cloud: {stats.cloud_families}"
+            f"Core: {stats.core_families}, "
+            f"Accessory: {stats.accessory_families}, "
+            f"Cloud: {stats.cloud_families}"
         )
 
         return 0
