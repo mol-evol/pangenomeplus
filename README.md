@@ -501,16 +501,19 @@ pangenomeplus --genome-dir example_6_genomes/ \
 ### Example Results
 
 Analysis of 6 *E. coli* genomes produced:
-- **Total gene families**: 6,816 (across all feature types)
+
+**Features extracted**:
+- 25,944 proteins → 4,211 families
+- 14,570 intergenic regions → 2,553 families
+- 468 tRNAs → 54 families
+- 132 rRNAs → 3 families
+
+**Total**: 41,114 features clustered into 6,821 families
+
+**Classification**:
 - **Core families** (≥95%): 6,520 families (95.7%)
 - **Accessory families** (15-95%): 296 families (4.3%)
 - **Cloud families** (<15%): 0 families
-
-**By feature type**:
-- Proteins: 4,205 families (4,167 core + 38 accessory)
-- Intergenic regions: 2,317 families (2,301 core + 16 accessory)
-- tRNAs: 54 families (all core)
-- rRNAs: 3 families (all core)
 
 ![Rarefaction Curves](README_images/rarefaction_curves.png)
 *Figure 1: Pangenome growth curve showing family accumulation across 6 E. coli genomes.*
