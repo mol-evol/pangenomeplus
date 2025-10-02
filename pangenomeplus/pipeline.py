@@ -19,11 +19,20 @@ import json
 import logging
 import os
 import random
-import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+from rich.console import Console
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+    TimeRemainingColumn,
+)
 
 from .clustering import ClusteringError, FamilyStats, cluster_features_by_type
 from .compact_ids import CompactIDManager
@@ -239,76 +248,24 @@ def generate_playful_message() -> str:
     return f"{random.choice(verbs)} {random.choice(modifiers)} {random.choice(nouns)}"
 
 
-class SingleLineProgress:
-    """Single-line progress indicator with spinner and metrics."""
+def create_rich_progress(playful: bool = True) -> Progress:
+    """Create Rich progress display with spinner and metrics.
 
-    def __init__(self, total: int, playful: bool = True) -> None:
-        """Initialize progress tracker.
+    Args:
+        playful: Whether to show playful status messages (currently unused)
 
-        Args:
-            total: Total number of items to process
-            playful: Whether to show playful status messages
-        """
-        self.total = total
-        self.current = 0
-        self.playful = playful
-        self.spinners = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
-        self.spinner_idx = 0
-        self.start_time = time.time()
-        self.terminal_width = 120  # Conservative terminal width
-
-    def update(self, genome_name: str, status_msg: str = "") -> None:
-        """Update progress display.
-
-        Args:
-            genome_name: Name of current genome being processed
-            status_msg: Playful status message (optional)
-        """
-        # Calculate metrics
-        elapsed = time.time() - self.start_time
-        rate = self.current / elapsed if elapsed > 0 else 0
-        remaining_items = self.total - self.current
-        remaining_time = remaining_items / rate if rate > 0 else 0
-        pct = int(100 * self.current / self.total) if self.total > 0 else 0
-
-        # Get spinner character
-        spinner = self.spinners[self.spinner_idx % len(self.spinners)]
-        self.spinner_idx += 1
-
-        # Build message components
-        if self.playful and status_msg:
-            status_part = f"{status_msg} | "
-        else:
-            status_part = "Processing | "
-
-        # Shorten genome name if needed
-        max_genome_len = 30
-        if len(genome_name) > max_genome_len:
-            genome_name = genome_name[: max_genome_len - 3] + "..."
-
-        progress_part = f"[{self.current}/{self.total}] {pct}%"
-        rate_part = f"{rate:.1f} g/s"
-        time_part = format_time(remaining_time)
-
-        # Build complete message
-        msg = (
-            f"{spinner} {status_part}{genome_name} {progress_part} • "
-            f"{rate_part} • {time_part} remaining"
-        )
-
-        # Clear line and write message
-        sys.stdout.write("\r" + " " * self.terminal_width + "\r")
-        sys.stdout.write(msg[: self.terminal_width])
-        sys.stdout.flush()
-
-    def advance(self) -> None:
-        """Increment progress counter."""
-        self.current += 1
-
-    def finish(self) -> None:
-        """Complete progress and move to next line."""
-        sys.stdout.write("\n")
-        sys.stdout.flush()
+    Returns:
+        Configured Rich Progress instance
+    """
+    return Progress(
+        SpinnerColumn(),  # Animated spinner
+        TextColumn("[cyan]{task.description}"),  # Status/genome message
+        BarColumn(),  # Progress bar
+        TaskProgressColumn(),  # [1/3] 33%
+        TimeRemainingColumn(),  # Time remaining
+        console=Console(),
+        transient=False,  # Keep visible after completion
+    )
 
 
 @dataclass
@@ -950,73 +907,81 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
     original_level = logger.level
     if config.playful_mode:
         logger.setLevel(logging.WARNING)  # Only show warnings/errors during progress
-        # Use single-line progress indicator for playful mode
-        progress = SingleLineProgress(
-            total=len(genome_files), playful=config.playful_mode
-        )
 
-        for i, genome_file in enumerate(genome_files):
-            genome_id = Path(genome_file).stem
+        # Use Rich progress display
+        with create_rich_progress(playful=config.playful_mode) as progress:
+            task = progress.add_task(
+                "[cyan]Analyzing genomes...", total=len(genome_files)
+            )
 
-            # Skip if already processed (resume functionality)
-            if genome_id in processed_genomes:
-                logger.debug(f"Skipping already processed genome: {genome_id}")
-                progress.advance()
-                continue
+            for i, genome_file in enumerate(genome_files):
+                genome_id = Path(genome_file).stem
 
-            genome_name = extract_genome_name(genome_file)
-            status = generate_playful_message()
+                # Skip if already processed (resume functionality)
+                if genome_id in processed_genomes:
+                    logger.debug(f"Skipping already processed genome: {genome_id}")
+                    progress.advance(task)
+                    continue
 
-            # Update progress display
-            progress.update(genome_name, status)
+                genome_name = extract_genome_name(genome_file)
+                status = generate_playful_message() if config.playful_mode else ""
 
-            try:
-                # Process single genome
-                processed_id, features = process_single_genome(
-                    genome_file, config, id_manager, logger
-                )
+                # Update progress with playful message
+                if status:
+                    progress.update(
+                        task,
+                        description=f"[cyan]{status} | [green]{genome_name}",
+                    )
+                else:
+                    progress.update(
+                        task, description=f"[cyan]Processing [green]{genome_name}"
+                    )
 
-                # Update statistics
-                stats.add_genome_features(features)
-                stats.processed_genomes += 1
-                processed_genomes.append(processed_id)
+                try:
+                    # Process single genome
+                    processed_id, features = process_single_genome(
+                        genome_file, config, id_manager, logger
+                    )
 
-                # Log completion with feature counts to file
-                protein_count = len(features.get("proteins", []))
-                intergenic_count = len(features.get("intergenic", []))
-                trna_count = len(features.get("tRNAs", []))
-                rrna_count = len(features.get("rRNAs", []))
-                crispr_count = len(features.get("CRISPR", []))
+                    # Update statistics
+                    stats.add_genome_features(features)
+                    stats.processed_genomes += 1
+                    processed_genomes.append(processed_id)
 
-                logger.info(
-                    f"✓ {genome_name}: {protein_count:,} proteins | "
-                    f"{intergenic_count:,} intergenic | {trna_count} tRNAs | "
-                    f"{rrna_count} rRNAs | {crispr_count} CRISPR"
-                )
+                    # Log completion with feature counts to file
+                    protein_count = len(features.get("proteins", []))
+                    intergenic_count = len(features.get("intergenic", []))
+                    trna_count = len(features.get("tRNAs", []))
+                    rrna_count = len(features.get("rRNAs", []))
+                    crispr_count = len(features.get("CRISPR", []))
 
-            except ExtractionError as e:
-                logger.warning(f"Genome processing failed, continuing: {e}")
-                logger.warning(f"✗ {genome_name}: Processing failed")
-                failed_genomes.append(genome_id)
-                stats.failed_genomes += 1
+                    logger.info(
+                        f"✓ {genome_name}: {protein_count:,} proteins | "
+                        f"{intergenic_count:,} intergenic | {trna_count} tRNAs | "
+                        f"{rrna_count} rRNAs | {crispr_count} CRISPR"
+                    )
 
-            progress.advance()
+                except ExtractionError as e:
+                    logger.warning(f"Genome processing failed, continuing: {e}")
+                    logger.warning(f"✗ {genome_name}: Processing failed")
+                    failed_genomes.append(genome_id)
+                    stats.failed_genomes += 1
 
-            # Create checkpoint every 10 genomes
-            if (i + 1) % 10 == 0 or (i + 1) == len(genome_files):
-                checkpoint_data = {
-                    "processed_genomes": processed_genomes,
-                    "processed_count": stats.processed_genomes,
-                    "failed_count": stats.failed_genomes,
-                    "failed_genomes": failed_genomes,
-                    "feature_counts": stats.feature_counts,
-                    "timestamp": time.time(),
-                }
-                create_checkpoint(checkpoint_file, checkpoint_data)
-                logger.debug(f"Checkpoint created at genome {i + 1}")
+                progress.advance(task)
 
-        # Finish progress and move to new line
-        progress.finish()
+                # Create checkpoint every 10 genomes
+                if (i + 1) % 10 == 0 or (i + 1) == len(genome_files):
+                    checkpoint_data = {
+                        "processed_genomes": processed_genomes,
+                        "processed_count": stats.processed_genomes,
+                        "failed_count": stats.failed_genomes,
+                        "failed_genomes": failed_genomes,
+                        "feature_counts": stats.feature_counts,
+                        "timestamp": time.time(),
+                    }
+                    create_checkpoint(checkpoint_file, checkpoint_data)
+                    logger.debug(f"Checkpoint created at genome {i + 1}")
+
         # Restore normal logging level
         logger.setLevel(original_level)
 
