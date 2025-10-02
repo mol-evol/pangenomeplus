@@ -1055,6 +1055,15 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
     if failed_genomes:
         logger.warning(f"Failed genomes: {', '.join(failed_genomes)}")
 
+    # Run downstream analysis if requested
+    if config.enable_downstream_analysis and stats.processed_genomes > 0:
+        logger.warning(
+            "Downstream analysis modules are available but not yet integrated into the pipeline."
+        )
+        logger.info(
+            "Use pangenomeplus.outputs and pangenomeplus.pangenome_analysis modules directly."
+        )
+
     # Clean up checkpoint if all successful
     if stats.failed_genomes == 0 and os.path.exists(checkpoint_file):
         os.remove(checkpoint_file)
