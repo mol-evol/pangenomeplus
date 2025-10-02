@@ -522,25 +522,27 @@ def setup_logging(
     """
     logger = logging.getLogger("pangenomeplus")
     logger.setLevel(getattr(logging, log_level.upper()))
+    logger.propagate = False  # Prevent duplicate output from child loggers
 
     # Remove existing handlers
     for handler in logger.handlers[:]:
         logger.removeHandler(handler)
 
-    # Create formatter
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
+    # Clean console format - just the message
+    console_formatter = logging.Formatter("%(message)s")
 
     # Console handler
     console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
+    console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)
 
-    # File handler if specified
+    # File handler if specified - detailed format for debugging
     if log_file:
+        file_formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
         file_handler = logging.FileHandler(log_file)
-        file_handler.setFormatter(formatter)
+        file_handler.setFormatter(file_formatter)
         logger.addHandler(file_handler)
 
     return logger
@@ -730,8 +732,6 @@ def run_clustering_stage(
     Raises:
         ClusteringError: If clustering fails
     """
-    logger.info("Starting clustering stage")
-
     clustering_output_dir = os.path.join(config.output_dir, "clustering")
     os.makedirs(clustering_output_dir, exist_ok=True)
 
@@ -946,7 +946,10 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
     # Process each genome
     failed_genomes = []
 
+    # Suppress verbose logging during progress display
+    original_level = logger.level
     if config.playful_mode:
+        logger.setLevel(logging.WARNING)  # Only show warnings/errors during progress
         # Use single-line progress indicator for playful mode
         progress = SingleLineProgress(
             total=len(genome_files), playful=config.playful_mode
@@ -1014,6 +1017,8 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
 
         # Finish progress and move to new line
         progress.finish()
+        # Restore normal logging level
+        logger.setLevel(original_level)
 
     else:
         # Traditional mode for production environments

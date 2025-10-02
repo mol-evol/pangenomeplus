@@ -465,7 +465,7 @@ def setup_logging(level: str) -> logging.Logger:
     numeric_level = getattr(logging, level.upper())
     logging.basicConfig(
         level=numeric_level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        format="%(message)s",  # Simple format - just the message
         handlers=[logging.StreamHandler(sys.stdout)],
     )
     return logging.getLogger(__name__)
