@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from .clustering import FamilyStats
 from .compact_ids import CompactIDManager
+from .constants import FeatureType
 
 
 def calculate_rarefaction_curve(
@@ -306,14 +307,7 @@ def generate_pangenome_summary_report(
         # Feature type breakdown
         f.write("## Feature Type Analysis\n")
         for feature_type, stats_dict in family_stats.items():
-            feature_names = {
-                "P": "Proteins",
-                "I": "Intergenic",
-                "T": "tRNAs",
-                "R": "rRNAs",
-                "C": "CRISPR",
-            }
-            feature_name = feature_names.get(feature_type, f"Type {feature_type}")
+            feature_name = FeatureType.NAMES.get(feature_type, f"Type {feature_type}")
 
             family_count = len(stats_dict)
             f.write(f"- {feature_name}: {family_count:,} families\n")
@@ -611,18 +605,11 @@ def generate_comprehensive_markdown_report(
 
         # Feature Type Analysis
         f.write("### Feature Type Breakdown\n\n")
-        feature_names = {
-            "P": "Proteins",
-            "I": "Intergenic regions",
-            "T": "tRNAs",
-            "R": "rRNAs",
-            "C": "CRISPR elements",
-        }
         f.write("| Feature Type | Family Count | Percentage |\n")
         f.write("|--------------|-------------|------------|\n")
 
         for feature_type, stats_dict in family_stats.items():
-            feature_name = feature_names.get(feature_type, f"Type {feature_type}")
+            feature_name = FeatureType.NAMES.get(feature_type, f"Type {feature_type}")
             family_count = len(stats_dict)
             percentage = (
                 (family_count / total_all_families * 100)

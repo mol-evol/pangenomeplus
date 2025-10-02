@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 from typing import Any, Dict
 
+from pangenomeplus.constants import FeatureType
+
 
 @dataclass(frozen=True)
 class Feature:
@@ -61,9 +63,8 @@ class Feature:
             raise ValueError("feature_type cannot be empty")
 
         # Validate feature type is one of the supported types
-        valid_types = {"P", "I", "T", "R", "C"}
-        if self.feature_type not in valid_types:
-            raise ValueError(f"feature_type must be one of {valid_types}")
+        if self.feature_type not in FeatureType.ALL_TYPES:
+            raise ValueError(f"feature_type must be one of {FeatureType.ALL_TYPES}")
 
         # Validate strand
         valid_strands = {"+", "-", "."}

@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 from .compact_ids import CompactIDManager
+from .constants import CLOUD_GENOME_THRESHOLD, CORE_GENOME_THRESHOLD
 from .core import Feature
 
 
@@ -373,8 +374,8 @@ def classify_families(
     family_to_members: Dict[str, List[str]],
     id_manager: CompactIDManager,
     total_genomes: int,
-    core_threshold: float = 0.95,
-    cloud_threshold: float = 0.15,
+    core_threshold: float = CORE_GENOME_THRESHOLD,
+    cloud_threshold: float = CLOUD_GENOME_THRESHOLD,
 ) -> Dict[str, FamilyStats]:
     """Classify families as core, accessory, cloud, or singleton.
 

@@ -16,6 +16,7 @@ All functions follow the pattern:
 3. Return Feature objects with compact IDs assigned
 """
 
+import logging
 import os
 import subprocess
 from pathlib import Path
@@ -24,6 +25,7 @@ from typing import Any, Dict, List
 from Bio import SeqIO
 
 from .compact_ids import CompactIDManager
+from .constants import MIN_INTERGENIC_LENGTH
 from .core import Feature
 
 
@@ -273,16 +275,13 @@ def parse_minced_output(
     """
     features = []
 
-    # Load genome sequences for sequence extraction
+    # Validate genome file exists and is readable
     try:
         genome_records = list(SeqIO.parse(genome_file, "fasta"))
         if not genome_records:
-            raise ValueError("No sequences found")
-
-        # Genome sequences loaded (not used in current MINCED parsing implementation)
-        # contig_sequences = {record.id: str(record.seq) for record in genome_records}
+            raise ValueError("No sequences found in genome file")
     except Exception as e:
-        raise ExtractionError(f"Failed to load genome sequence: {e}")
+        raise ExtractionError(f"Failed to load genome: {e}")
 
     try:
         with open(minced_file, "r") as f:
@@ -478,7 +477,7 @@ def calculate_intergenic_regions(
     genome_file: str,
     genome_id: str,
     id_manager: CompactIDManager,
-    min_length: int = 50,
+    min_length: int = MIN_INTERGENIC_LENGTH,
 ) -> List[Feature]:
     """Calculate intergenic regions between annotated features.
 
@@ -512,13 +511,13 @@ def calculate_intergenic_regions(
     except Exception as e:
         raise ExtractionError(f"Failed to load genome sequence: {e}")
 
-    # Sort features by start coordinate (should already be sorted from GFF3)
-    sorted_features = sorted(features, key=lambda f: f.start)
+    # Features already coordinate-sorted from GFF3 parsing - use directly for O(n) algorithm
+    # No need for O(n log n) sorting operation per CLAUDE.md performance guidelines
 
     # Linear pass through features to find gaps - O(n)
     prev_end = 1  # Start from position 1 (1-based coordinates)
 
-    for feature in sorted_features:
+    for feature in features:
         # Check for intergenic region before this feature
         gap_start = prev_end
         gap_end = feature.start - 1
@@ -817,8 +816,11 @@ def extract_genome_features(
                         existing_gff, genome_file, genome_id, id_manager
                     )
                     all_features["proteins"] = protein_features
-                except Exception:
-                    # Fall back to Prodigal on any error
+                except (IOError, OSError, ExtractionError) as e:
+                    # Fall back to Prodigal on file or parsing errors
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Failed to use existing GFF {existing_gff}: {e}")
+                    logger.info("Falling back to Prodigal for gene prediction")
                     gff_file = run_prodigal(
                         genome_file,
                         genome_output_dir,

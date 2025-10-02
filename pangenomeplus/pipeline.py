@@ -36,6 +36,7 @@ from rich.progress import (
 
 from .clustering import ClusteringError, FamilyStats, cluster_features_by_type
 from .compact_ids import CompactIDManager
+from .constants import CHECKPOINT_INTERVAL, FeatureType
 from .core import Feature
 from .extraction import ExtractionError, extract_genome_features
 
@@ -970,7 +971,7 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
                 progress.advance(task)
 
                 # Create checkpoint every 10 genomes
-                if (i + 1) % 10 == 0 or (i + 1) == len(genome_files):
+                if (i + 1) % CHECKPOINT_INTERVAL == 0 or (i + 1) == len(genome_files):
                     checkpoint_data = {
                         "processed_genomes": processed_genomes,
                         "processed_count": stats.processed_genomes,
@@ -1022,7 +1023,7 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
                 continue
 
             # Create checkpoint every 10 genomes
-            if (i + 1) % 10 == 0 or (i + 1) == len(genome_files):
+            if (i + 1) % CHECKPOINT_INTERVAL == 0 or (i + 1) == len(genome_files):
                 checkpoint_data = {
                     "processed_genomes": processed_genomes,
                     "processed_count": stats.processed_genomes,
@@ -1100,13 +1101,6 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
         )
 
         logger.info("Classification by feature type:")
-        feature_names = {
-            "P": "Proteins",
-            "I": "Intergenic",
-            "T": "tRNAs",
-            "R": "rRNAs",
-            "C": "CRISPR",
-        }
         for feature_type in ["P", "I", "T", "R", "C"]:
             total_fams = stats.family_counts.get(feature_type, 0)
             if total_fams > 0:
@@ -1115,7 +1109,7 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
                 cloud = stats.cloud_families_by_type.get(feature_type, 0)
                 singletons = stats.singleton_counts.get(feature_type, 0)
                 logger.info(
-                    f"  {feature_names.get(feature_type, feature_type)}: "
+                    f"  {FeatureType.NAMES.get(feature_type, feature_type)}: "
                     f"Core={core:,}, Accessory={accessory:,}, Cloud={cloud:,} ({singletons:,} singletons)"
                 )
 

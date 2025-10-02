@@ -15,6 +15,7 @@ import os
 import sys
 from pathlib import Path
 
+from .constants import FeatureType
 from .pipeline import PipelineConfig, process_genomes
 
 
@@ -505,13 +506,6 @@ def main() -> int:
         )
 
         # Per-feature-type breakdown
-        feature_names = {
-            "P": "Proteins",
-            "I": "Intergenic",
-            "T": "tRNAs",
-            "R": "rRNAs",
-            "C": "CRISPR",
-        }
         logger.info("By feature type:")
         for feature_type in ["P", "I", "T", "R", "C"]:
             if stats.family_counts.get(feature_type, 0) > 0:
@@ -519,7 +513,7 @@ def main() -> int:
                 accessory = stats.accessory_families_by_type.get(feature_type, 0)
                 cloud = stats.cloud_families_by_type.get(feature_type, 0)
                 logger.info(
-                    f"  {feature_names[feature_type]}: "
+                    f"  {FeatureType.NAMES[feature_type]}: "
                     f"Core={core}, Accessory={accessory}, Cloud={cloud}"
                 )
 

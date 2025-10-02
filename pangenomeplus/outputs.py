@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .clustering import FamilyStats
 from .compact_ids import CompactIDManager
+from .constants import CLOUD_GENOME_THRESHOLD, CORE_GENOME_THRESHOLD, FeatureType
 
 
 def reconstruct_genomic_coordinates(
@@ -297,10 +298,10 @@ def generate_family_summary(
             for family_id, stats in stats_dict.items():
                 genome_percentage = (stats.genome_count / total_genomes) * 100
 
-                # Classification logic
-                if genome_percentage >= 95:
+                # Classification logic using constants
+                if genome_percentage >= (CORE_GENOME_THRESHOLD * 100):
                     classification = "core"
-                elif genome_percentage >= 15:
+                elif genome_percentage >= (CLOUD_GENOME_THRESHOLD * 100):
                     classification = "accessory"
                 else:
                     classification = "cloud"
@@ -355,16 +356,9 @@ def generate_family_summary(
     )
 
     # Log per-feature-type breakdown
-    feature_names = {
-        "P": "Proteins",
-        "I": "Intergenic",
-        "T": "tRNAs",
-        "R": "rRNAs",
-        "C": "CRISPR",
-    }
     logger.info("Classification by feature type:")
     for feature_type, counts in sorted(classification_by_type.items()):
-        feature_name = feature_names.get(feature_type, feature_type)
+        feature_name = FeatureType.NAMES.get(feature_type, feature_type)
         logger.info(
             f"  {feature_name}: "
             f"Core={counts['core']}, "
@@ -507,14 +501,9 @@ def generate_representative_sequences_fasta(
             continue
 
         # Get feature type name for filename
-        feature_names = {
-            "P": "proteins",
-            "I": "intergenic",
-            "T": "tRNAs",
-            "R": "rRNAs",
-            "C": "CRISPR",
-        }
-        feature_name = feature_names.get(feature_type, f"type_{feature_type}")
+        feature_name = FeatureType.NAMES.get(
+            feature_type, f"type_{feature_type}"
+        ).lower()
 
         output_file = os.path.join(
             sequences_dir, f"representatives_{feature_name}.fasta"
