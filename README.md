@@ -222,18 +222,6 @@ pangenomeplus --genome-dir my_genomes --output-dir no_rna \
               --skip-trna --skip-rrna
 ```
 
-#### Use Organism Presets
-```bash
-# For bacterial genomes (default)
-pangenomeplus --genome-dir my_genomes --output-dir results --preset bacteria
-
-# For archaeal genomes
-pangenomeplus --genome-dir my_genomes --output-dir results --preset archaea
-
-# For metagenomic assemblies
-pangenomeplus --genome-dir my_genomes --output-dir results --preset metagenomic
-```
-
 ### Step 4: Resume Interrupted Analysis
 If analysis is interrupted, simply re-run the same command. PanGenomePlus will detect completed stages and resume from the last checkpoint.
 
@@ -282,12 +270,6 @@ If analysis is interrupted, simply re-run the same command. PanGenomePlus will d
 - `--threads INT` - Number of parallel threads (default: auto-detect)
 - `--memory-limit SIZE` - Memory limit for MMseqs2 (default: auto)
 - `--log-level {DEBUG,INFO,WARNING,ERROR}` - Logging verbosity (default: INFO)
-
-### Organism Presets
-- `--preset bacteria` - Optimized for bacterial genomes (default)
-- `--preset archaea` - Optimized for archaeal genomes
-- `--preset eukaryota` - Optimized for eukaryotic genomes
-- `--preset metagenomic` - Optimized for metagenomic assemblies
 
 ## Output Files
 
