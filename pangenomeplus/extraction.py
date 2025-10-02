@@ -132,6 +132,7 @@ def run_trnascan(
     cmd = [
         "trnascan-se",
         *model_flags[model],
+        "-Q",  # Force overwrite without prompting (critical for batch processing)
         "-X",
         str(score_cutoff),
         "-o",
