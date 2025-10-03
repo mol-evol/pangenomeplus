@@ -294,6 +294,7 @@ class PipelineConfig:
     # Performance settings
     resume: bool = True
     keep_intermediates: bool = True
+    intermediate_dir: Optional[str] = None  # Directory with existing tool outputs
     log_level: str = "INFO"
 
     # Annotation options
@@ -816,6 +817,7 @@ def process_single_genome(
             skip_crispr=skip_crispr,
             skip_intergenic=skip_intergenic,
             use_existing_annotations=config.use_existing_annotations,
+            intermediate_dir=config.intermediate_dir,
             prodigal=config.prodigal_params,
             trna=config.trna_params,
             rrna=config.rrna_params,

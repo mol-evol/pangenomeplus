@@ -235,6 +235,16 @@ pangenomeplus --genome-dir my_genomes --output-dir no_rna \
 ### Step 4: Resume Interrupted Analysis
 If analysis is interrupted, simply re-run the same command. PanGenomePlus will detect completed stages and resume from the last checkpoint.
 
+### Step 5: Reuse Existing Tool Outputs
+If you have already run the external tools (Prodigal, tRNAscan-SE, Barrnap, MINCED) on your genomes, you can reuse those results to skip the time-consuming annotation step:
+```bash
+# Reuse tool outputs from a previous run
+pangenomeplus --genome-dir my_genomes \
+              --intermediate-dir previous_run/intermediate \
+              --output-dir new_analysis
+```
+This is particularly useful when testing different clustering parameters or feature selection options without re-running the annotation tools.
+
 ## Command-Line Options
 
 ### Required Arguments
@@ -278,6 +288,7 @@ If analysis is interrupted, simply re-run the same command. PanGenomePlus will d
 
 ### Annotation Input
 - `--use-existing-annotations` - Use existing GFF3 files if found (skips Prodigal)
+- `--intermediate-dir PATH` - Directory with existing tool outputs from a previous run to reuse (skips re-running tools)
 
 ### Downstream Analysis
 - `--enable-downstream-analysis` - Generate rarefaction curves, visualizations, and summary reports

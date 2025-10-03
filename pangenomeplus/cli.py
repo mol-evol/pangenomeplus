@@ -288,6 +288,11 @@ For more information, visit: https://github.com/your-org/pangenomeplus
         help="Keep intermediate files (default: True)",
     )
     control.add_argument(
+        "--intermediate-dir",
+        type=str,
+        help="Directory with existing tool outputs to reuse (Prodigal, tRNAscan, etc.)",
+    )
+    control.add_argument(
         "--log-level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
         default="INFO",
@@ -484,6 +489,7 @@ def args_to_config(args: argparse.Namespace) -> PipelineConfig:
         crispr_params=crispr_params,
         resume=resume,
         keep_intermediates=args.keep_intermediates,
+        intermediate_dir=args.intermediate_dir,
         log_level=args.log_level,
         enable_downstream_analysis=args.enable_downstream_analysis,
         rarefaction_iterations=args.rarefaction_iterations,

@@ -20,7 +20,7 @@ import logging
 import os
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from Bio import SeqIO
 
@@ -36,7 +36,11 @@ class ExtractionError(Exception):
 
 
 def run_prodigal(
-    genome_file: str, output_dir: str, mode: str = ToolDefaults.PRODIGAL_MODE, translation_table: int = ToolDefaults.TRANSLATION_TABLE
+    genome_file: str,
+    output_dir: str,
+    mode: str = ToolDefaults.PRODIGAL_MODE,
+    translation_table: int = ToolDefaults.TRANSLATION_TABLE,
+    check_existing: bool = False
 ) -> str:
     """Run Prodigal gene prediction on a genome file.
 
@@ -45,6 +49,7 @@ def run_prodigal(
         output_dir: Directory to write output files
         mode: Prodigal mode ('single' or 'meta')
         translation_table: Genetic code table number
+        check_existing: If True, return existing file if found
 
     Returns:
         Path to generated GFF3 file
@@ -56,6 +61,12 @@ def run_prodigal(
 
     base_name = Path(genome_file).stem
     gff_file = os.path.join(output_dir, f"{base_name}.gff")
+
+    # KISS: Simple existence check
+    if check_existing and os.path.exists(gff_file):
+        logger = logging.getLogger(__name__)
+        logger.info(f"Using existing Prodigal output: {gff_file}")
+        return gff_file
     faa_file = os.path.join(output_dir, f"{base_name}.faa")
     fna_file = os.path.join(output_dir, f"{base_name}.fna")
 
@@ -98,6 +109,7 @@ def run_trnascan(
     model: str = ToolDefaults.TRNASCAN_MODEL,
     score_cutoff: float = ToolDefaults.TRNASCAN_SCORE_CUTOFF,
     search_mode: str = "normal",
+    check_existing: bool = False
 ) -> str:
     """Run tRNAscan-SE for tRNA detection.
 
@@ -106,6 +118,7 @@ def run_trnascan(
         output_dir: Directory to write output files
         model: Organism model ('bacteria', 'archaea', 'eukaryota')
         score_cutoff: Score threshold for tRNA detection
+        check_existing: If True, return existing file if found
 
     Returns:
         Path to generated tab-delimited output file
@@ -117,6 +130,12 @@ def run_trnascan(
 
     base_name = Path(genome_file).stem
     output_file = os.path.join(output_dir, f"{base_name}_trna.txt")
+
+    # KISS: Simple existence check
+    if check_existing and os.path.exists(output_file):
+        logger = logging.getLogger(__name__)
+        logger.info(f"Using existing tRNAscan-SE output: {output_file}")
+        return output_file
 
     # Map model names to tRNAscan-SE parameters
     model_flags = {
@@ -156,7 +175,11 @@ def run_trnascan(
 
 
 def run_barrnap(
-    genome_file: str, output_dir: str, kingdom: str = ToolDefaults.BARRNAP_KINGDOM, evalue: float = ToolDefaults.BARRNAP_EVALUE
+    genome_file: str,
+    output_dir: str,
+    kingdom: str = ToolDefaults.BARRNAP_KINGDOM,
+    evalue: float = ToolDefaults.BARRNAP_EVALUE,
+    check_existing: bool = False
 ) -> str:
     """Run Barrnap for rRNA detection.
 
@@ -165,6 +188,7 @@ def run_barrnap(
         output_dir: Directory to write output files
         kingdom: Kingdom model ('bac', 'arc', 'euk', 'mito')
         evalue: E-value threshold
+        check_existing: If True, return existing file if found
 
     Returns:
         Path to generated GFF3 file
@@ -176,6 +200,12 @@ def run_barrnap(
 
     base_name = Path(genome_file).stem
     output_file = os.path.join(output_dir, f"{base_name}_rrna.gff")
+
+    # KISS: Simple existence check
+    if check_existing and os.path.exists(output_file):
+        logger = logging.getLogger(__name__)
+        logger.info(f"Using existing Barrnap output: {output_file}")
+        return output_file
 
     cmd = [
         "barrnap",
@@ -210,6 +240,7 @@ def run_minced(
     min_repeats: int = ToolDefaults.MINCED_MIN_REPEATS,
     min_spacer_length: int = ToolDefaults.MINCED_SPACER_LENGTH_MIN,
     max_spacer_length: int = ToolDefaults.MINCED_SPACER_LENGTH_MAX,
+    check_existing: bool = False
 ) -> str:
     """Run MINCED for CRISPR detection.
 
@@ -219,6 +250,7 @@ def run_minced(
         min_repeats: Minimum number of repeats for CRISPR array
         min_spacer_length: Minimum spacer length
         max_spacer_length: Maximum spacer length
+        check_existing: If True, return existing file if found
 
     Returns:
         Path to generated text output file
@@ -230,6 +262,12 @@ def run_minced(
 
     base_name = Path(genome_file).stem
     output_file = os.path.join(output_dir, f"{base_name}_crispr.txt")
+
+    # KISS: Simple existence check
+    if check_existing and os.path.exists(output_file):
+        logger = logging.getLogger(__name__)
+        logger.info(f"Using existing MINCED output: {output_file}")
+        return output_file
 
     cmd = [
         "minced",
@@ -762,6 +800,7 @@ def extract_genome_features(
     skip_crispr: bool = False,
     skip_intergenic: bool = False,
     use_existing_annotations: bool = False,
+    intermediate_dir: Optional[str] = None,
     **tool_params: Any,
 ) -> Dict[str, List[Feature]]:
     """Extract all features from a genome using external tools.
@@ -778,6 +817,7 @@ def extract_genome_features(
         skip_rrna: Skip rRNA detection
         skip_crispr: Skip CRISPR detection
         skip_intergenic: Skip intergenic region calculation
+        intermediate_dir: If provided, look for existing tool outputs here
         **tool_params: Parameters for external tools
 
     Returns:
@@ -794,7 +834,20 @@ def extract_genome_features(
         "CRISPR": [],
     }
 
-    genome_output_dir = os.path.join(output_dir, genome_id)
+    # Determine where to look for/create tool outputs
+    if intermediate_dir:
+        # Use intermediate dir for tool outputs
+        tool_output_dir = os.path.join(intermediate_dir, genome_id)
+        check_existing = True
+        # CRISPR files are at intermediate root level
+        crispr_output_dir = intermediate_dir
+    else:
+        # Use normal output dir
+        tool_output_dir = os.path.join(output_dir, genome_id)
+        check_existing = False
+        crispr_output_dir = output_dir
+
+    genome_output_dir = tool_output_dir  # For compatibility
     os.makedirs(genome_output_dir, exist_ok=True)
 
     # 1. Run Prodigal for protein-coding genes (always required for intergenic calculation)
@@ -825,6 +878,7 @@ def extract_genome_features(
                     gff_file = run_prodigal(
                         genome_file,
                         genome_output_dir,
+                        check_existing=check_existing,
                         **tool_params.get("prodigal", {}),
                     )
                     protein_features = parse_prodigal_gff(
@@ -834,7 +888,7 @@ def extract_genome_features(
             else:
                 # No existing GFF found, run Prodigal
                 gff_file = run_prodigal(
-                    genome_file, genome_output_dir, **tool_params.get("prodigal", {})
+                    genome_file, genome_output_dir, check_existing=check_existing, **tool_params.get("prodigal", {})
                 )
                 protein_features = parse_prodigal_gff(
                     gff_file, genome_file, genome_id, id_manager
@@ -843,7 +897,7 @@ def extract_genome_features(
         else:
             # Standard Prodigal run
             gff_file = run_prodigal(
-                genome_file, genome_output_dir, **tool_params.get("prodigal", {})
+                genome_file, genome_output_dir, check_existing=check_existing, **tool_params.get("prodigal", {})
             )
             protein_features = parse_prodigal_gff(
                 gff_file, genome_file, genome_id, id_manager
@@ -874,7 +928,7 @@ def extract_genome_features(
 
             # Run MINCED to detect CRISPR arrays
             minced_output = run_minced(
-                genome_file=genome_file, output_dir=output_dir, **crispr_params
+                genome_file=genome_file, output_dir=crispr_output_dir, check_existing=check_existing, **crispr_params
             )
 
             # Parse MINCED output and create features
@@ -896,7 +950,7 @@ def extract_genome_features(
 
             # Run tRNAscan-SE to detect tRNAs
             trnascan_output = run_trnascan(
-                genome_file=genome_file, output_dir=genome_output_dir, **trna_params
+                genome_file=genome_file, output_dir=genome_output_dir, check_existing=check_existing, **trna_params
             )
 
             # Parse tRNAscan-SE output and create features
@@ -918,7 +972,7 @@ def extract_genome_features(
 
             # Run Barrnap to detect rRNAs
             barrnap_output = run_barrnap(
-                genome_file=genome_file, output_dir=genome_output_dir, **rrna_params
+                genome_file=genome_file, output_dir=genome_output_dir, check_existing=check_existing, **rrna_params
             )
 
             # Parse Barrnap output and create features
