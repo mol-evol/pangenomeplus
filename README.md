@@ -503,21 +503,25 @@ pangenomeplus --genome-dir example_6_genomes/ \
 Analysis of 6 *E. coli* genomes produced:
 
 **Features extracted**:
-- 25,944 proteins → 4,211 families
-- 14,570 intergenic regions → 2,553 families
-- 468 tRNAs → 55 families
+- 29,836 proteins → 7,276 families
+- 15,525 intergenic regions → 3,596 families
+- 576 tRNAs → 96 families
 - 132 rRNAs → 3 families
+- 87 CRISPR elements → 87 families
 
-**Total**: 41,114 features clustered into 6,822 families
+**Total**: 46,156 features clustered into 11,058 families
 
 **Classification** (all feature types combined):
-- **Core families** (≥95%): 6,525 families (95.6%)
-  - Proteins: 4,167 core families
-  - Intergenic regions: 2,301 core families
-  - tRNAs: 54 core families
+- **Core families** (≥95%): 5,151 families (46.6%)
+  - Proteins: 3,380 core families
+  - Intergenic regions: 1,739 core families
+  - tRNAs: 29 core families
   - rRNAs: 3 core families
-- **Accessory families** (15-95%): 297 families (4.4%)
+  - CRISPR: 0 core families
+- **Accessory families** (15-95%): 5,907 families (53.4%)
 - **Cloud families** (<15%): 0 families
+
+**Pangenome type**: OPEN (growth rate: 780 families/genome)
 
 ![Rarefaction Curves](README_images/rarefaction_curves.png)
 *Figure 1: Pangenome growth curve showing family accumulation across 6 E. coli genomes.*
@@ -526,7 +530,7 @@ Analysis of 6 *E. coli* genomes produced:
 *Figure 2: Distribution of gene families by feature type (proteins, intergenic regions, tRNAs, rRNAs).*
 
 ![Family Classification](README_images/family_classification.png)
-*Figure 3: Proportional distribution of core and accessory families (96% core, 4% accessory).*
+*Figure 3: Proportional distribution of core and accessory families (47% core, 53% accessory).*
 
 ![Presence/Absence Heatmap](README_images/presence_absence_heatmap.png)
 *Figure 4: Presence/absence patterns for the 50 most variable gene families across all 6 genomes.*
