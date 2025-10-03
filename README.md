@@ -577,7 +577,7 @@ Analysis of 6 *E. coli* genomes produced:
 
 - **Local storage recommended**: Network drives may cause slower I/O for large datasets
 - **Allocate threads**: Use `--threads` to match CPU core count
-- **Skip unused features**: Use `--skip-*` flags to reduce runtime
+- **Skip unused features**: Use individual skip flags (`--skip-trna`, `--skip-rrna`, `--skip-crispr`, `--skip-intergenic`) to reduce runtime
 
 ## Citation
 
