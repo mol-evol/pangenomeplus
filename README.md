@@ -510,8 +510,12 @@ Analysis of 6 *E. coli* genomes produced:
 
 **Total**: 41,114 features clustered into 6,822 families
 
-**Classification**:
+**Classification** (all feature types combined):
 - **Core families** (≥95%): 6,525 families (95.6%)
+  - Proteins: 4,167 core families
+  - Intergenic regions: 2,301 core families
+  - tRNAs: 54 core families
+  - rRNAs: 3 core families
 - **Accessory families** (15-95%): 297 families (4.4%)
 - **Cloud families** (<15%): 0 families
 
@@ -567,7 +571,7 @@ Analysis of 6 *E. coli* genomes produced:
 
 ## Performance Tips
 
-- **Use SSDs**: Significantly faster I/O for large datasets
+- **Local storage recommended**: Network drives may cause slower I/O for large datasets
 - **Allocate threads**: Use `--threads` to match CPU core count
 - **Batch processing**: For 100+ genomes, consider processing in batches
 - **Skip unused features**: Use `--skip-*` flags to reduce runtime
