@@ -577,7 +577,6 @@ Analysis of 6 *E. coli* genomes produced:
 
 - **Local storage recommended**: Network drives may cause slower I/O for large datasets
 - **Allocate threads**: Use `--threads` to match CPU core count
-- **Batch processing**: For 100+ genomes, consider processing in batches
 - **Skip unused features**: Use `--skip-*` flags to reduce runtime
 
 ## Citation
