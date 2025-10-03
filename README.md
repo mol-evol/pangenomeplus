@@ -145,14 +145,14 @@ pangenomeplus --genome-dir genomes/ \
               --clustering-identity 0.8
 ```
 
-### Example with Provided Test Data
+### Example Usage
 ```bash
-# Basic analysis with example genomes
-pangenomeplus --genome-dir example_data/ --output-dir example_output/
+# Basic analysis with your genomes
+pangenomeplus --genome-dir /path/to/genomes/ --output-dir output/
 
 # With downstream analysis and visualizations
-pangenomeplus --genome-dir example_data/ \
-              --output-dir example_output/ \
+pangenomeplus --genome-dir /path/to/genomes/ \
+              --output-dir output/ \
               --enable-downstream-analysis
 ```
 
@@ -485,17 +485,17 @@ Check `family_summary.tsv` for family statistics:
 - Examine accessory families for niche adaptations
 - Identify strain-specific genes in cloud families
 
-## Example Dataset
+## Getting Started
 
-The `example_6_genomes/` directory contains 6 *E. coli* genomes for demonstration:
+To test PanGenomePlus, prepare a directory with genome files in FASTA format (.fasta, .fna, or .fa):
 
 ```bash
 # Run complete analysis with visualizations
-pangenomeplus --genome-dir example_6_genomes/ \
-              --output-dir example_output/ \
+pangenomeplus --genome-dir /path/to/your/genomes/ \
+              --output-dir output/ \
               --enable-downstream-analysis
 
-# Runtime: ~2 minutes on standard hardware
+# Runtime: ~2 minutes for 6 E. coli genomes on standard hardware
 ```
 
 ### Example Results

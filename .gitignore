@@ -29,6 +29,17 @@ scalability_*.md
 # Test data directories
 test_*/
 !tests/test_genomes/
+
+# Development and testing files (keep local only)
+tests/
+example_6_genomes/
+example_data/
+CLAUDE.md
+TODO.md
+progress.md
+activeContext.md
+*_output/
+*_genomes/
 tool_test/
 large_ecoli_analysis/
 analysis_200_fixed/
