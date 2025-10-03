@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .clustering import FamilyStats
 from .compact_ids import CompactIDManager
-from .constants import CLOUD_GENOME_THRESHOLD, CORE_GENOME_THRESHOLD, FeatureType
+from .constants import CLOUD_GENOME_THRESHOLD, CORE_GENOME_THRESHOLD, FeatureType, OUTPUT_FILES
 
 
 def reconstruct_genomic_coordinates(
@@ -114,7 +114,7 @@ def generate_transformer_format(
                 genome_families[genome_id].add(family_id)
 
     # Generate coordinate-ordered output
-    output_file = transformer_dir / "pangenome_transformer.txt"
+    output_file = transformer_dir / OUTPUT_FILES["transformer"]
 
     with open(output_file, "w") as f:
         for genome_id in sorted(genome_families.keys()):
@@ -186,7 +186,7 @@ def generate_presence_absence_matrix(
     sorted_genomes = sorted(genome_families.keys())
 
     # Generate matrix
-    output_file = matrices_dir / "presence_absence_matrix.csv"
+    output_file = matrices_dir / OUTPUT_FILES["presence_absence"]
 
     with open(output_file, "w", newline="") as f:
         writer = csv.writer(f)
@@ -247,7 +247,7 @@ def generate_family_summary(
     matrices_dir.mkdir(parents=True, exist_ok=True)
 
     # Generate summary
-    output_file = matrices_dir / "family_summary.tsv"
+    output_file = matrices_dir / OUTPUT_FILES["family_summary"]
 
     with open(output_file, "w", newline="") as f:
         writer = csv.writer(f, delimiter="\t")

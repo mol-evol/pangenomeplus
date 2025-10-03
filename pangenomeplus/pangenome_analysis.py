@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from .clustering import FamilyStats
 from .compact_ids import CompactIDManager
-from .constants import FeatureType
+from .constants import FeatureType, VizParams
 
 
 def _create_rarefaction_plot(
@@ -38,7 +38,7 @@ def _create_rarefaction_plot(
     vis_dir = Path(output_dir) / "visualizations"
     vis_dir.mkdir(parents=True, exist_ok=True)
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=VizParams.DEFAULT_FIGSIZE)
 
     # Plot pangenome curve
     if "pangenome" in rarefaction_data and rarefaction_data["pangenome"]:
@@ -68,7 +68,7 @@ def _create_rarefaction_plot(
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    plt.savefig(vis_dir / "rarefaction_curves.png", dpi=300)
+    plt.savefig(vis_dir / "rarefaction_curves.png", dpi=VizParams.DPI)
     plt.close()
 
 
@@ -93,7 +93,7 @@ def _create_classification_pie(total_families: Dict[str, int], output_dir: str) 
     colors = ["#ff9999", "#66b3ff", "#99ff99"]
     explode = (0.05, 0, 0)  # Explode core slice
 
-    fig, ax = plt.subplots(figsize=(8, 6))
+    fig, ax = plt.subplots(figsize=VizParams.PIE_FIGSIZE)
     ax.pie(
         sizes,
         explode=explode,
@@ -106,7 +106,7 @@ def _create_classification_pie(total_families: Dict[str, int], output_dir: str) 
     ax.set_title("Pangenome Family Classification", fontsize=14, fontweight="bold")
 
     plt.tight_layout()
-    plt.savefig(vis_dir / "family_classification.png", dpi=300)
+    plt.savefig(vis_dir / "family_classification.png", dpi=VizParams.DPI)
     plt.close()
 
 
@@ -132,7 +132,7 @@ def _create_feature_type_bars(
         feature_types.append(feature_name)
         counts.append(len(stats_dict))
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=VizParams.DEFAULT_FIGSIZE)
     bars = ax.bar(
         feature_types,
         counts,
@@ -158,7 +158,7 @@ def _create_feature_type_bars(
     ax.grid(axis="y", alpha=0.3)
 
     plt.tight_layout()
-    plt.savefig(vis_dir / "feature_type_distribution.png", dpi=300)
+    plt.savefig(vis_dir / "feature_type_distribution.png", dpi=VizParams.DPI)
     plt.close()
 
 
@@ -166,7 +166,7 @@ def _create_presence_absence_heatmap(
     family_assignments: Dict[str, Dict[str, str]],
     id_manager: CompactIDManager,
     output_dir: str,
-    top_n: int = 50,
+    top_n: int = VizParams.TOP_VARIABLE_FAMILIES,
 ) -> None:
     """Generate presence/absence heatmap for most variable families.
 
@@ -221,7 +221,7 @@ def _create_presence_absence_heatmap(
         matrix.append(row)
 
     # Plot heatmap
-    fig, ax = plt.subplots(figsize=(14, max(8, len(genome_ids) * 0.4)))
+    fig, ax = plt.subplots(figsize=(VizParams.HEATMAP_FIGSIZE[0], max(8, len(genome_ids) * 0.4)))
     sns.heatmap(
         np.array(matrix),
         xticklabels=[f[:15] + "..." if len(f) > 15 else f for f in selected_families],
@@ -241,7 +241,7 @@ def _create_presence_absence_heatmap(
     plt.xticks(rotation=90)
 
     plt.tight_layout()
-    plt.savefig(vis_dir / "presence_absence_heatmap.png", dpi=300, bbox_inches="tight")
+    plt.savefig(vis_dir / "presence_absence_heatmap.png", dpi=VizParams.DPI, bbox_inches="tight")
     plt.close()
 
 
@@ -681,7 +681,7 @@ def generate_comprehensive_markdown_report(
 
     if family_assignments and id_manager:
         _create_presence_absence_heatmap(
-            family_assignments, id_manager, output_dir, top_n=50
+            family_assignments, id_manager, output_dir, top_n=VizParams.TOP_VARIABLE_FAMILIES
         )
 
     # Create comprehensive markdown report

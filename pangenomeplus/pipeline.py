@@ -36,7 +36,7 @@ from rich.progress import (
 
 from .clustering import ClusteringError, FamilyStats, cluster_features_by_type
 from .compact_ids import CompactIDManager
-from .constants import CHECKPOINT_INTERVAL, FeatureType
+from .constants import CHECKPOINT_INTERVAL, FeatureType, GENOME_EXTENSIONS, OUTPUT_FILES
 from .core import Feature
 from .extraction import ExtractionError, extract_genome_features
 
@@ -523,7 +523,7 @@ def discover_genomes(genome_dir: str) -> List[str]:
     Raises:
         PipelineError: If no genome files found
     """
-    extensions = [".fasta", ".fna", ".fa"]
+    extensions = GENOME_EXTENSIONS
     genome_files = []
 
     for ext in extensions:
@@ -629,7 +629,7 @@ def save_feature_mappings(
     mappings_dir = os.path.join(output_dir, "mappings")
     os.makedirs(mappings_dir, exist_ok=True)
 
-    mappings_file = os.path.join(mappings_dir, "compact_id_mappings.json")
+    mappings_file = os.path.join(mappings_dir, OUTPUT_FILES["mappings"])
 
     # Create serializable mapping data
     mapping_data = {

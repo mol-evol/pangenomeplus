@@ -23,7 +23,11 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 from .compact_ids import CompactIDManager
-from .constants import CLOUD_GENOME_THRESHOLD, CORE_GENOME_THRESHOLD
+from .constants import (
+    CLOUD_GENOME_THRESHOLD,
+    CORE_GENOME_THRESHOLD,
+    ClusteringDefaults,
+)
 from .core import Feature
 
 
@@ -41,8 +45,8 @@ class ClusteringParams:
     coverage: float = 0.8
     coverage_mode: int = 1  # 0: query, 1: target, 2: bidirectional
     cluster_mode: int = 0  # 0: set-cover, 1: connected-component, 2: greedy
-    sensitivity: float = 4.0
-    max_seqs: int = 10000
+    sensitivity: float = ClusteringDefaults.SENSITIVITY
+    max_seqs: int = ClusteringDefaults.MAX_SEQS
 
 
 @dataclass
@@ -70,11 +74,26 @@ def get_clustering_params(feature_type: str) -> ClusteringParams:
         ClusteringError: If feature type is invalid
     """
     params_map = {
-        "P": ClusteringParams(min_seq_id=0.8, coverage=0.8),  # Proteins
-        "I": ClusteringParams(min_seq_id=0.7, coverage=0.5),  # Intergenic (relaxed)
-        "T": ClusteringParams(min_seq_id=0.9, coverage=0.9),  # tRNAs (strict)
-        "R": ClusteringParams(min_seq_id=0.95, coverage=0.95),  # rRNAs (very strict)
-        "C": ClusteringParams(min_seq_id=0.8, coverage=0.6),  # CRISPR spacers
+        "P": ClusteringParams(
+            min_seq_id=ClusteringDefaults.PROTEIN["identity"],
+            coverage=ClusteringDefaults.PROTEIN["coverage"],
+        ),  # Proteins
+        "I": ClusteringParams(
+            min_seq_id=ClusteringDefaults.INTERGENIC["identity"],
+            coverage=ClusteringDefaults.INTERGENIC["coverage"],
+        ),  # Intergenic (relaxed)
+        "T": ClusteringParams(
+            min_seq_id=ClusteringDefaults.TRNA["identity"],
+            coverage=ClusteringDefaults.TRNA["coverage"],
+        ),  # tRNAs (strict)
+        "R": ClusteringParams(
+            min_seq_id=ClusteringDefaults.RRNA["identity"],
+            coverage=ClusteringDefaults.RRNA["coverage"],
+        ),  # rRNAs (very strict)
+        "C": ClusteringParams(
+            min_seq_id=ClusteringDefaults.CRISPR["identity"],
+            coverage=ClusteringDefaults.CRISPR["coverage"],
+        ),  # CRISPR spacers
     }
 
     if feature_type not in params_map:

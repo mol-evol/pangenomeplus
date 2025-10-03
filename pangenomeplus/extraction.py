@@ -25,7 +25,7 @@ from typing import Any, Dict, List
 from Bio import SeqIO
 
 from .compact_ids import CompactIDManager
-from .constants import MIN_INTERGENIC_LENGTH
+from .constants import MIN_INTERGENIC_LENGTH, ToolDefaults
 from .core import Feature
 
 
@@ -36,7 +36,7 @@ class ExtractionError(Exception):
 
 
 def run_prodigal(
-    genome_file: str, output_dir: str, mode: str = "single", translation_table: int = 11
+    genome_file: str, output_dir: str, mode: str = ToolDefaults.PRODIGAL_MODE, translation_table: int = ToolDefaults.TRANSLATION_TABLE
 ) -> str:
     """Run Prodigal gene prediction on a genome file.
 
@@ -95,8 +95,8 @@ def run_prodigal(
 def run_trnascan(
     genome_file: str,
     output_dir: str,
-    model: str = "bacteria",
-    score_cutoff: float = 20.0,
+    model: str = ToolDefaults.TRNASCAN_MODEL,
+    score_cutoff: float = ToolDefaults.TRNASCAN_SCORE_CUTOFF,
     search_mode: str = "normal",
 ) -> str:
     """Run tRNAscan-SE for tRNA detection.
@@ -156,7 +156,7 @@ def run_trnascan(
 
 
 def run_barrnap(
-    genome_file: str, output_dir: str, kingdom: str = "bac", evalue: float = 1e-6
+    genome_file: str, output_dir: str, kingdom: str = ToolDefaults.BARRNAP_KINGDOM, evalue: float = ToolDefaults.BARRNAP_EVALUE
 ) -> str:
     """Run Barrnap for rRNA detection.
 
@@ -207,9 +207,9 @@ def run_barrnap(
 def run_minced(
     genome_file: str,
     output_dir: str,
-    min_repeats: int = 3,
-    min_spacer_length: int = 26,
-    max_spacer_length: int = 50,
+    min_repeats: int = ToolDefaults.MINCED_MIN_REPEATS,
+    min_spacer_length: int = ToolDefaults.MINCED_SPACER_LENGTH_MIN,
+    max_spacer_length: int = ToolDefaults.MINCED_SPACER_LENGTH_MAX,
 ) -> str:
     """Run MINCED for CRISPR detection.
 
@@ -867,9 +867,9 @@ def extract_genome_features(
         try:
             # Extract CRISPR parameters from tool_params
             crispr_params = {
-                "min_repeats": tool_params.get("crispr_min_repeats", 3),
-                "min_spacer_length": tool_params.get("crispr_min_spacer_length", 26),
-                "max_spacer_length": tool_params.get("crispr_max_spacer_length", 50),
+                "min_repeats": tool_params.get("crispr_min_repeats", ToolDefaults.MINCED_MIN_REPEATS),
+                "min_spacer_length": tool_params.get("crispr_min_spacer_length", ToolDefaults.MINCED_SPACER_LENGTH_MIN),
+                "max_spacer_length": tool_params.get("crispr_max_spacer_length", ToolDefaults.MINCED_SPACER_LENGTH_MAX),
             }
 
             # Run MINCED to detect CRISPR arrays
