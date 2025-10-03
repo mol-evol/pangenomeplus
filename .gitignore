@@ -28,6 +28,7 @@ scalability_*.md
 
 # Test data directories
 test_*/
+!tests/test_genomes/
 tool_test/
 large_ecoli_analysis/
 analysis_200_fixed/
@@ -58,4 +59,4 @@ TODO.md
 generate_viz.py
 accessions_to_download.txt
 pytest.ini
-tests/
+# tests/  # Commented out - we want to track our test suite
