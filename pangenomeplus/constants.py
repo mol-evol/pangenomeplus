@@ -38,3 +38,71 @@ CLOUD_GENOME_THRESHOLD = 0.15  # Present in <15% of genomes
 # Pipeline configuration defaults
 MIN_INTERGENIC_LENGTH = 50  # Minimum intergenic region length in base pairs
 CHECKPOINT_INTERVAL = 10  # Save checkpoint every N genomes during processing
+
+
+class ClusteringDefaults:
+    """Default clustering parameters for each feature type.
+
+    Used in: clustering.py lines 73-77, cli.py for defaults
+    """
+    PROTEIN = {"identity": 0.8, "coverage": 0.8}
+    INTERGENIC = {"identity": 0.7, "coverage": 0.5}  # Relaxed for high variability
+    TRNA = {"identity": 0.9, "coverage": 0.9}  # Strict for conserved features
+    RRNA = {"identity": 0.95, "coverage": 0.95}  # Very strict for highly conserved
+    CRISPR = {"identity": 0.8, "coverage": 0.6}  # Moderate for spacer diversity
+
+    # MMseqs2 general parameters
+    SENSITIVITY = 4.0  # Default sensitivity level
+    MAX_SEQS = 10000  # Maximum sequences per query
+
+
+class VizParams:
+    """Visualization parameters for plots and figures.
+
+    Used in: pangenome_analysis.py lines 41, 96, 135, 224
+    """
+    DEFAULT_FIGSIZE = (10, 6)
+    HEATMAP_FIGSIZE = (14, 8)
+    PIE_FIGSIZE = (8, 6)
+    DPI = 300
+    TOP_VARIABLE_FAMILIES = 50  # Number of families to show in heatmap
+
+
+# File handling
+# Used in: pipeline.py line 521, cli.py
+GENOME_EXTENSIONS = [".fasta", ".fna", ".fa"]
+
+# Output file names
+# Used in: outputs.py, pipeline.py
+OUTPUT_FILES = {
+    "presence_absence": "presence_absence_matrix.csv",
+    "family_summary": "family_summary.tsv",
+    "transformer": "pangenome_transformer.txt",
+    "mappings": "compact_id_mappings.json",
+    "markdown_report": "pangenome_report.md"
+}
+
+
+class ToolDefaults:
+    """Default parameters for external bioinformatics tools.
+
+    Used in: extraction.py, cli.py for argument defaults
+    """
+    # Prodigal defaults
+    PRODIGAL_MODE = "single"  # Default mode for gene prediction
+    TRANSLATION_TABLE = 11  # Bacterial/Archaeal genetic code
+
+    # tRNAscan-SE defaults
+    TRNASCAN_SCORE_CUTOFF = 20.0  # Score threshold for tRNA detection
+    TRNASCAN_MODEL = "bacteria"  # Default organism model
+
+    # Barrnap defaults
+    BARRNAP_EVALUE = 1e-6  # E-value threshold for rRNA detection
+    BARRNAP_KINGDOM = "bac"  # Default kingdom (bacteria)
+
+    # MINCED defaults
+    MINCED_MIN_REPEATS = 3  # Minimum repeats for CRISPR array
+    MINCED_REPEAT_LENGTH_MIN = 23
+    MINCED_REPEAT_LENGTH_MAX = 47
+    MINCED_SPACER_LENGTH_MIN = 26
+    MINCED_SPACER_LENGTH_MAX = 50

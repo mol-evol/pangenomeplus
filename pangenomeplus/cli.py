@@ -187,6 +187,27 @@ For more information, visit: https://github.com/your-org/pangenomeplus
         help="Memory limit for MMseqs2 operations (default: auto)",
     )
 
+    # Pangenome classification parameters (new)
+    classification = parser.add_argument_group("Pangenome Classification Parameters")
+    classification.add_argument(
+        "--core-threshold",
+        type=float,
+        default=0.95,
+        help="Minimum genome fraction for core families (default: 0.95)",
+    )
+    classification.add_argument(
+        "--cloud-threshold",
+        type=float,
+        default=0.15,
+        help="Maximum genome fraction for cloud families (default: 0.15)",
+    )
+    classification.add_argument(
+        "--min-intergenic-length",
+        type=int,
+        default=50,
+        help="Minimum intergenic region length in bp (default: 50)",
+    )
+
     # Annotation input parameters
     annotation = parser.add_argument_group("Annotation Input Parameters")
     annotation.add_argument(
@@ -334,6 +355,19 @@ def validate_arguments(args: argparse.Namespace) -> None:
     if args.rarefaction_step_size < 1:
         errors.append("Rarefaction step size must be positive (≥1)")
 
+    # Validate pangenome classification thresholds
+    if not (0.0 < args.core_threshold <= 1.0):
+        errors.append("Core threshold must be between 0.0 and 1.0")
+
+    if not (0.0 <= args.cloud_threshold < 1.0):
+        errors.append("Cloud threshold must be between 0.0 and 1.0")
+
+    if args.cloud_threshold >= args.core_threshold:
+        errors.append("Cloud threshold must be less than core threshold")
+
+    if args.min_intergenic_length < 1:
+        errors.append("Minimum intergenic length must be at least 1 bp")
+
     # Validate range parameters
     try:
         repeat_parts = args.crispr_repeat_length_range.split(",")
@@ -456,6 +490,9 @@ def args_to_config(args: argparse.Namespace) -> PipelineConfig:
         rarefaction_step_size=args.rarefaction_step_size,
         use_existing_annotations=args.use_existing_annotations,
         playful_mode=playful_mode,
+        core_threshold=args.core_threshold,
+        cloud_threshold=args.cloud_threshold,
+        min_intergenic_length=args.min_intergenic_length,
     )
 
     return config

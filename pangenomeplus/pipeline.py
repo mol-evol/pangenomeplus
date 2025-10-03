@@ -307,6 +307,11 @@ class PipelineConfig:
     # UI options
     playful_mode: bool = True
 
+    # Pangenome classification thresholds (new)
+    core_threshold: float = 0.95
+    cloud_threshold: float = 0.15
+    min_intergenic_length: int = 50
+
     def __post_init__(self) -> None:
         """Initialize default parameters if not provided."""
         if not self.prodigal_params:

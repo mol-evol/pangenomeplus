@@ -1,0 +1,102 @@
+2025-10-03 10:21:56,569 - pangenomeplus - INFO - Starting PanGenomePlus pipeline
+2025-10-03 10:21:56,569 - pangenomeplus - INFO - Output directory: readme_example_output
+2025-10-03 10:21:56,569 - pangenomeplus - INFO - Discovered 6 genome files
+2025-10-03 10:25:04,379 - pangenomeplus - INFO - Starting clustering stage
+2025-10-03 10:25:04,387 - pangenomeplus - INFO - Clustering 29836 proteins features
+2025-10-03 10:25:17,281 - pangenomeplus - INFO -   proteins: 7276 families (5726 multi-member families)
+2025-10-03 10:25:17,291 - pangenomeplus - INFO - Clustering 15525 intergenic features
+2025-10-03 10:25:31,145 - pangenomeplus - INFO -   intergenic: 3596 families (2902 multi-member families)
+2025-10-03 10:25:31,152 - pangenomeplus - INFO - Clustering 576 tRNAs features
+2025-10-03 10:25:42,307 - pangenomeplus - INFO -   tRNAs: 96 families (84 multi-member families)
+2025-10-03 10:25:42,313 - pangenomeplus - INFO - Clustering 132 rRNAs features
+2025-10-03 10:25:48,506 - pangenomeplus - INFO -   rRNAs: 3 families (3 multi-member families)
+2025-10-03 10:25:48,512 - pangenomeplus - INFO - Clustering 87 CRISPR features
+2025-10-03 10:25:53,329 - pangenomeplus - INFO -   CRISPR: 87 families (1 multi-member families)
+2025-10-03 10:25:53,329 - pangenomeplus - INFO - Clustering stage completed
+2025-10-03 10:25:53,333 - pangenomeplus - INFO - Clustering stage completed successfully
+2025-10-03 10:25:53,418 - pangenomeplus - INFO - Gene-to-family mappings saved: readme_example_output/families/gene_to_family.tsv (46,156 assignments)
+2025-10-03 10:25:54,690 - pangenomeplus - INFO - Compact ID mappings saved to: readme_example_output/mappings/compact_id_mappings.json
+2025-10-03 10:25:54,690 - pangenomeplus - INFO - Pipeline completed successfully
+2025-10-03 10:25:54,690 - pangenomeplus - INFO - Processed genomes: 6
+2025-10-03 10:25:54,690 - pangenomeplus - INFO - Failed genomes: 0
+2025-10-03 10:25:54,690 - pangenomeplus - INFO - Total features extracted: 46156
+2025-10-03 10:25:54,690 - pangenomeplus - INFO - Processing time: 187.8 seconds
+2025-10-03 10:25:54,690 - pangenomeplus - INFO - Rate: 0.03 genomes/second
+2025-10-03 10:25:54,690 - pangenomeplus - INFO - Feature extraction summary:
+2025-10-03 10:25:54,690 - pangenomeplus - INFO -   proteins: 29,836 features
+2025-10-03 10:25:54,690 - pangenomeplus - INFO -   intergenic: 15,525 features
+2025-10-03 10:25:54,690 - pangenomeplus - INFO -   tRNAs: 576 features
+2025-10-03 10:25:54,690 - pangenomeplus - INFO -   rRNAs: 132 features
+2025-10-03 10:25:54,690 - pangenomeplus - INFO -   CRISPR: 87 features
+2025-10-03 10:25:54,690 - pangenomeplus - INFO - Clustering summary:
+2025-10-03 10:25:54,690 - pangenomeplus - INFO -   Total families: 8,716
+2025-10-03 10:25:54,690 - pangenomeplus - INFO -   Total - Core: 5,151, Accessory: 3,565, Cloud: 0
+2025-10-03 10:25:54,690 - pangenomeplus - INFO - Classification by feature type:
+2025-10-03 10:25:54,691 - pangenomeplus - INFO -   Proteins: Core=3,380, Accessory=2,346, Cloud=0 (1,550 singletons)
+2025-10-03 10:25:54,691 - pangenomeplus - INFO -   Intergenic: Core=1,739, Accessory=1,163, Cloud=0 (694 singletons)
+2025-10-03 10:25:54,691 - pangenomeplus - INFO -   tRNAs: Core=29, Accessory=55, Cloud=0 (12 singletons)
+2025-10-03 10:25:54,691 - pangenomeplus - INFO -   rRNAs: Core=3, Accessory=0, Cloud=0 (0 singletons)
+2025-10-03 10:25:54,691 - pangenomeplus - INFO -   CRISPR: Core=0, Accessory=1, Cloud=0 (86 singletons)
+2025-10-03 10:25:54,691 - pangenomeplus - INFO - ============================================================
+2025-10-03 10:25:54,691 - pangenomeplus - INFO - Starting downstream pangenome analysis...
+2025-10-03 10:25:54,691 - pangenomeplus - INFO - ============================================================
+2025-10-03 10:25:54,696 - pangenomeplus - INFO - Generating output files...
+2025-10-03 10:25:54,696 - pangenomeplus - INFO - Generating all output formats
+2025-10-03 10:25:54,696 - pangenomeplus - INFO - Generating transformer format with coordinate ordering
+2025-10-03 10:25:54,799 - pangenomeplus - INFO - Transformer format written to readme_example_output/transformer/pangenome_transformer.txt
+2025-10-03 10:25:54,799 - pangenomeplus - INFO - Generated 6 genome sequences
+2025-10-03 10:25:54,799 - pangenomeplus - INFO - Generating presence/absence matrix
+2025-10-03 10:25:54,826 - pangenomeplus - INFO - Presence/absence matrix written to readme_example_output/matrices/presence_absence_matrix.csv
+2025-10-03 10:25:54,826 - pangenomeplus - INFO - Matrix dimensions: 6 genomes × 10994 families
+2025-10-03 10:25:54,826 - pangenomeplus - INFO - Generating family summary statistics
+2025-10-03 10:26:03,770 - pangenomeplus - INFO - Family summary written to readme_example_output/matrices/family_summary.tsv
+2025-10-03 10:26:03,770 - pangenomeplus - INFO - Total families: 11058
+2025-10-03 10:26:03,770 - pangenomeplus - INFO - Total - Core: 5151, Accessory: 5907, Cloud: 0
+2025-10-03 10:26:03,770 - pangenomeplus - INFO - Classification by feature type:
+2025-10-03 10:26:03,770 - pangenomeplus - INFO -   CRISPR: Core=0, Accessory=87, Cloud=0
+2025-10-03 10:26:03,770 - pangenomeplus - INFO -   Intergenic: Core=1739, Accessory=1857, Cloud=0
+2025-10-03 10:26:03,770 - pangenomeplus - INFO -   Proteins: Core=3380, Accessory=3896, Cloud=0
+2025-10-03 10:26:03,770 - pangenomeplus - INFO -   rRNAs: Core=3, Accessory=0, Cloud=0
+2025-10-03 10:26:03,770 - pangenomeplus - INFO -   tRNAs: Core=29, Accessory=67, Cloud=0
+2025-10-03 10:26:03,770 - pangenomeplus - INFO - Generating Roary-compatible output
+2025-10-03 10:26:03,807 - pangenomeplus - INFO - Roary-compatible output written to readme_example_output/roary/roary_compatible_output.csv
+2025-10-03 10:26:03,808 - pangenomeplus - INFO - Generated 10994 family entries
+2025-10-03 10:26:03,808 - pangenomeplus - INFO - Generating representative sequence FASTA files
+2025-10-03 10:26:03,837 - pangenomeplus - INFO - Generated 7276 representative sequences for proteins: readme_example_output/representative_sequences/representatives_proteins.fasta
+2025-10-03 10:26:03,843 - pangenomeplus - INFO - Generated 3532 representative sequences for intergenic: readme_example_output/representative_sequences/representatives_intergenic.fasta
+2025-10-03 10:26:03,844 - pangenomeplus - INFO - Generated 96 representative sequences for trnas: readme_example_output/representative_sequences/representatives_trnas.fasta
+2025-10-03 10:26:03,845 - pangenomeplus - INFO - Generated 3 representative sequences for rrnas: readme_example_output/representative_sequences/representatives_rrnas.fasta
+2025-10-03 10:26:03,846 - pangenomeplus - INFO - Generated 87 representative sequences for crispr: readme_example_output/representative_sequences/representatives_crispr.fasta
+2025-10-03 10:26:03,846 - pangenomeplus - INFO - Representative sequence FASTA generation complete: 5 files created
+2025-10-03 10:26:03,846 - pangenomeplus - INFO - All output formats generated successfully
+2025-10-03 10:26:03,846 - pangenomeplus - INFO - Output generation complete:
+2025-10-03 10:26:03,846 - pangenomeplus - INFO -   - transformer: readme_example_output/transformer/pangenome_transformer.txt
+2025-10-03 10:26:03,846 - pangenomeplus - INFO -   - matrix: readme_example_output/matrices/presence_absence_matrix.csv
+2025-10-03 10:26:03,846 - pangenomeplus - INFO -   - summary: readme_example_output/matrices/family_summary.tsv
+2025-10-03 10:26:03,846 - pangenomeplus - INFO -   - roary: readme_example_output/roary/roary_compatible_output.csv
+2025-10-03 10:26:03,846 - pangenomeplus - INFO -   representative_sequences:
+2025-10-03 10:26:03,846 - pangenomeplus - INFO -     - P: readme_example_output/representative_sequences/representatives_proteins.fasta
+2025-10-03 10:26:03,846 - pangenomeplus - INFO -     - I: readme_example_output/representative_sequences/representatives_intergenic.fasta
+2025-10-03 10:26:03,846 - pangenomeplus - INFO -     - T: readme_example_output/representative_sequences/representatives_trnas.fasta
+2025-10-03 10:26:03,846 - pangenomeplus - INFO -     - R: readme_example_output/representative_sequences/representatives_rrnas.fasta
+2025-10-03 10:26:03,846 - pangenomeplus - INFO -     - C: readme_example_output/representative_sequences/representatives_crispr.fasta
+2025-10-03 10:26:03,846 - pangenomeplus - INFO - 
+2025-10-03 10:26:03,846 - pangenomeplus - INFO - Calculating rarefaction curves...
+2025-10-03 10:26:03,846 - pangenomeplus.pangenome_analysis - INFO - Calculating rarefaction curves
+2025-10-03 10:26:03,862 - pangenomeplus.pangenome_analysis - INFO - Analyzing rarefaction for 6 genomes with 100 iterations
+2025-10-03 10:26:05,357 - pangenomeplus.pangenome_analysis - INFO - Rarefaction curves calculated for 6 genome counts
+2025-10-03 10:26:05,358 - pangenomeplus - INFO - Analyzing pangenome openness...
+2025-10-03 10:26:05,358 - pangenomeplus.pangenome_analysis - INFO - Analyzing pangenome openness
+2025-10-03 10:26:05,358 - pangenomeplus.pangenome_analysis - INFO - Pangenome classified as: open
+2025-10-03 10:26:05,358 - pangenomeplus.pangenome_analysis - INFO - Growth rate: 780.3 families/genome
+2025-10-03 10:26:05,358 - pangenomeplus.pangenome_analysis - INFO - Core stability: 0.720
+2025-10-03 10:26:05,358 - pangenomeplus - INFO -   Pangenome status: unknown
+2025-10-03 10:26:05,358 - pangenomeplus - INFO - 
+2025-10-03 10:26:05,358 - pangenomeplus - INFO - Generating comprehensive markdown report...
+2025-10-03 10:26:05,358 - pangenomeplus.pangenome_analysis - INFO - Generating comprehensive markdown report: readme_example_output/pangenome_report.md
+2025-10-03 10:26:07,631 - pangenomeplus.pangenome_analysis - INFO - Comprehensive markdown report generated: readme_example_output/pangenome_report.md
+2025-10-03 10:26:07,631 - pangenomeplus - INFO - 
+2025-10-03 10:26:07,631 - pangenomeplus - INFO - ============================================================
+2025-10-03 10:26:07,631 - pangenomeplus - INFO - Downstream analysis completed successfully!
+2025-10-03 10:26:07,631 - pangenomeplus - INFO - Comprehensive report: readme_example_output/pangenome_report.md
+2025-10-03 10:26:07,631 - pangenomeplus - INFO - ============================================================
