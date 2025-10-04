@@ -460,6 +460,8 @@ def cluster_features_by_type(
     output_dir: str,
     id_manager: CompactIDManager,
     total_genomes: int,
+    cloud_threshold: float = 0.15,
+    core_threshold: float = 0.95,
 ) -> Tuple[Dict[str, str], Dict[str, FamilyStats]]:
     """Cluster features of specific type and assign families.
 
@@ -503,6 +505,12 @@ def cluster_features_by_type(
     compact_to_family, family_to_members = assign_family_ids(clusters, feature_type)
 
     # Classify families
-    family_stats = classify_families(family_to_members, id_manager, total_genomes)
+    family_stats = classify_families(
+        family_to_members,
+        id_manager,
+        total_genomes,
+        cloud_threshold=cloud_threshold,
+        core_threshold=core_threshold,
+    )
 
     return compact_to_family, family_stats

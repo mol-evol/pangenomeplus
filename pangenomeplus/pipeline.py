@@ -737,6 +737,8 @@ def run_clustering_stage(
                 output_dir=clustering_output_dir,
                 id_manager=id_manager,
                 total_genomes=total_genomes,
+                cloud_threshold=config.cloud_threshold,
+                core_threshold=config.core_threshold,
             )
 
             # Store both assignments and stats
