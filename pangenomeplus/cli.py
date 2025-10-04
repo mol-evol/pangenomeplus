@@ -299,15 +299,10 @@ For more information, visit: https://github.com/your-org/pangenomeplus
         help="Logging verbosity level (default: INFO)",
     )
     control.add_argument(
-        "--playful",
-        action="store_true",
-        default=True,
-        help="Enable playful status messages and rich output (default: True)",
-    )
-    control.add_argument(
         "--no-playful",
         action="store_true",
-        help="Disable playful mode for production environments",
+        default=False,
+        help="Disable playful mode (rich progress bars, status messages)",
     )
 
     return parser
@@ -328,8 +323,6 @@ def validate_arguments(args: argparse.Namespace) -> None:
     if args.protein_only and args.non_coding_only:
         errors.append("Cannot specify both --protein-only and --non-coding-only")
 
-    if args.playful and args.no_playful:
-        errors.append("Cannot specify both --playful and --no-playful")
 
     # Validate parameter ranges
     if not (0.0 <= args.clustering_identity <= 1.0):
@@ -449,7 +442,7 @@ def args_to_config(args: argparse.Namespace) -> PipelineConfig:
     resume = args.resume and not args.no_resume
 
     # Handle playful mode logic
-    playful_mode = args.playful and not args.no_playful
+    playful_mode = not args.no_playful
 
     # Build parameter dictionaries
     prodigal_params = {

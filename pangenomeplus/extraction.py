@@ -625,6 +625,117 @@ def calculate_intergenic_regions(
     return intergenic_features
 
 
+def write_intergenic_gff(intergenic_features: List[Feature], output_file: str) -> None:
+    """Write intergenic regions to GFF3 format for caching.
+
+    Args:
+        intergenic_features: List of intergenic Feature objects
+        output_file: Path to output GFF3 file
+    """
+    with open(output_file, 'w') as f:
+        # Write GFF3 header
+        f.write("##gff-version 3\n")
+        f.write("# Intergenic regions calculated by PanGenomePlus\n")
+
+        # Write each intergenic region
+        for feature in intergenic_features:
+            # GFF3 format: seqid source type start end score strand phase attributes
+            attributes = f"ID={feature.original_id};product={feature.metadata.get('product', 'intergenic_region')}"
+            line = f"{feature.contig}\tPanGenomePlus\tintergenic_region\t{feature.start}\t{feature.end}\t.\t{feature.strand}\t.\t{attributes}\n"
+            f.write(line)
+
+
+def parse_intergenic_gff(
+    gff_file: str, genome_file: str, genome_id: str, id_manager: CompactIDManager
+) -> List[Feature]:
+    """Parse cached intergenic GFF and create Feature objects.
+
+    Args:
+        gff_file: Path to intergenic GFF3 file
+        genome_file: Path to original genome FASTA file
+        genome_id: Identifier for this genome
+        id_manager: CompactIDManager for ID assignment
+
+    Returns:
+        List of Feature objects for intergenic regions
+
+    Raises:
+        ExtractionError: If parsing fails
+    """
+    features = []
+
+    # Load genome sequences - handle multi-contig genomes
+    try:
+        genome_records = list(SeqIO.parse(genome_file, "fasta"))
+        if not genome_records:
+            raise ValueError("No sequences found")
+
+        # Create contig lookup for multi-contig genomes
+        contig_sequences = {record.id: str(record.seq) for record in genome_records}
+    except Exception as e:
+        raise ExtractionError(f"Failed to load genome sequence: {e}")
+
+    # Parse GFF3 file
+    try:
+        with open(gff_file, 'r') as f:
+            for line in f:
+                # Skip comments and headers
+                if line.startswith('#'):
+                    continue
+
+                # Parse GFF3 line
+                fields = line.strip().split('\t')
+                if len(fields) < 9:
+                    continue
+
+                contig = fields[0]
+                start = int(fields[3])
+                end = int(fields[4])
+                strand = fields[6]
+                attributes = fields[8]
+
+                # Extract original_id from attributes
+                original_id = None
+                for attr in attributes.split(';'):
+                    if attr.startswith('ID='):
+                        original_id = attr[3:]
+                        break
+
+                # Extract sequence from genome
+                if contig not in contig_sequences:
+                    continue
+
+                try:
+                    sequence = contig_sequences[contig][start - 1:end]  # Convert to 0-based
+                except IndexError:
+                    continue  # Skip invalid coordinates
+
+                # Generate compact ID
+                compact_id = id_manager.generate_compact_id("I")
+
+                # Create Feature object
+                feature = Feature(
+                    compact_id=compact_id,
+                    genome_id=genome_id,
+                    contig=contig,
+                    start=start,
+                    end=end,
+                    strand=strand,
+                    sequence=sequence,
+                    feature_type="I",
+                    original_id=original_id or f"intergenic_{start}_{end}",
+                    metadata={"product": "intergenic_region"},
+                )
+
+                features.append(feature)
+                id_manager.register_feature(feature)
+
+    except Exception as e:
+        raise ExtractionError(f"Failed to parse intergenic GFF: {e}")
+
+    return features
+
+
 def parse_trnascan_output(
     trnascan_file: str, genome_file: str, genome_id: str, id_manager: CompactIDManager
 ) -> List[Feature]:
@@ -909,9 +1020,23 @@ def extract_genome_features(
     # 2. Calculate intergenic regions (uses protein features as boundaries)
     if not skip_intergenic:
         try:
-            intergenic_features = calculate_intergenic_regions(
-                protein_features, genome_file, genome_id, id_manager
-            )
+            intergenic_gff = os.path.join(tool_output_dir, f"{genome_id}_intergenic.gff")
+
+            # Check for existing intergenic GFF when reusing intermediate files
+            if check_existing and os.path.exists(intergenic_gff):
+                logger = logging.getLogger(__name__)
+                logger.info(f"Using existing intergenic regions: {intergenic_gff}")
+                intergenic_features = parse_intergenic_gff(
+                    intergenic_gff, genome_file, genome_id, id_manager
+                )
+            else:
+                # Calculate intergenic regions from protein features
+                intergenic_features = calculate_intergenic_regions(
+                    protein_features, genome_file, genome_id, id_manager
+                )
+                # Save to GFF for future reuse
+                write_intergenic_gff(intergenic_features, intergenic_gff)
+
             all_features["intergenic"] = intergenic_features
         except Exception as e:
             raise ExtractionError(f"Intergenic extraction failed for {genome_id}: {e}")
