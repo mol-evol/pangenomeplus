@@ -422,10 +422,9 @@ def classify_families(
         genome_count = len(genomes_with_family)
         genome_fraction = genome_count / total_genomes if total_genomes > 0 else 0
 
-        # Determine classification
-        if family_id.startswith("SING_"):
-            classification = "singleton"
-        elif genome_fraction >= core_threshold:
+        # Determine classification based on genome frequency
+        # Singletons are included - they're cloud families (present in 1 genome)
+        if genome_fraction >= core_threshold:
             classification = "core"
         elif genome_fraction >= cloud_threshold:
             classification = "accessory"

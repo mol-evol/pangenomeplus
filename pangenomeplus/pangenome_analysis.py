@@ -681,7 +681,8 @@ def generate_comprehensive_markdown_report(
         run_metadata = {}
 
     # Calculate summary statistics
-    total_families = {"core": 0, "accessory": 0, "cloud": 0, "singleton": 0}
+    # Singletons are now included in cloud classification
+    total_families = {"core": 0, "accessory": 0, "cloud": 0}
     for feature_type, stats_dict in family_stats.items():
         for family_id, stats in stats_dict.items():
             classification = stats.classification
