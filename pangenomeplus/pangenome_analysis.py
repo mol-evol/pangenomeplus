@@ -40,26 +40,50 @@ def _create_rarefaction_plot(
 
     fig, ax = plt.subplots(figsize=VizParams.DEFAULT_FIGSIZE)
 
-    # Plot pangenome curve
+    # Plot pangenome curve with uncertainty band
     if "pangenome" in rarefaction_data and rarefaction_data["pangenome"]:
         data = rarefaction_data["pangenome"]
         x = [row[0] for row in data]  # genome_count
         y = [row[1] for row in data]  # mean
+        std = [row[2] for row in data]  # std
         ax.plot(x, y, "b-", linewidth=2, label="Pangenome")
+        ax.fill_between(
+            x,
+            [m - s for m, s in zip(y, std)],
+            [m + s for m, s in zip(y, std)],
+            alpha=0.2,
+            color="blue",
+        )
 
-    # Plot core genome curve
+    # Plot core genome curve with uncertainty band
     if "core" in rarefaction_data and rarefaction_data["core"]:
         data = rarefaction_data["core"]
         x = [row[0] for row in data]  # genome_count
         y = [row[1] for row in data]  # mean
+        std = [row[2] for row in data]  # std
         ax.plot(x, y, "r-", linewidth=2, label="Core genome")
+        ax.fill_between(
+            x,
+            [m - s for m, s in zip(y, std)],
+            [m + s for m, s in zip(y, std)],
+            alpha=0.2,
+            color="red",
+        )
 
-    # Plot accessory genome curve
+    # Plot accessory genome curve with uncertainty band
     if "accessory" in rarefaction_data and rarefaction_data["accessory"]:
         data = rarefaction_data["accessory"]
         x = [row[0] for row in data]  # genome_count
         y = [row[1] for row in data]  # mean
+        std = [row[2] for row in data]  # std
         ax.plot(x, y, "g-", linewidth=2, label="Accessory genome")
+        ax.fill_between(
+            x,
+            [m - s for m, s in zip(y, std)],
+            [m + s for m, s in zip(y, std)],
+            alpha=0.2,
+            color="green",
+        )
 
     ax.set_xlabel("Number of Genomes", fontsize=12)
     ax.set_ylabel("Number of Gene Families", fontsize=12)

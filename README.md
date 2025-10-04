@@ -542,7 +542,7 @@ Analysis of 6 *E. coli* genomes produced:
 **Pangenome type**: OPEN (growth rate: 780 families/genome)
 
 ![Rarefaction Curves](images/rarefaction_curves.png)
-*Figure 1: Pangenome growth curve showing family accumulation across 6 E. coli genomes.*
+*Figure 1: Pangenome rarefaction curves with 100-iteration resampling. Blue: total pangenome growth, Red: core genome decay, Green: accessory genome growth. Shaded regions show ±1 standard deviation from resampling uncertainty.*
 
 ![Feature Type Distribution](images/feature_type_distribution.png)
 *Figure 2: Distribution of gene families by feature type (proteins, intergenic regions, tRNAs, rRNAs).*
