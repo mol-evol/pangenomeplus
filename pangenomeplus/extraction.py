@@ -950,14 +950,13 @@ def extract_genome_features(
         # Use intermediate dir for tool outputs
         tool_output_dir = os.path.join(intermediate_dir, genome_id)
         check_existing = True
-        # CRISPR files are at intermediate root level
-        crispr_output_dir = intermediate_dir
     else:
         # Use normal output dir
         tool_output_dir = os.path.join(output_dir, genome_id)
         check_existing = False
-        crispr_output_dir = output_dir
 
+    # All tool outputs (including CRISPR) go to same directory for consistency
+    crispr_output_dir = tool_output_dir
     genome_output_dir = tool_output_dir  # For compatibility
     os.makedirs(genome_output_dir, exist_ok=True)
 

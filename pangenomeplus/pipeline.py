@@ -796,8 +796,8 @@ def process_single_genome(
     genome_id = Path(genome_file).stem
     logger.info(f"Processing genome: {genome_id}")
 
-    # Create genome-specific output directory
-    genome_output_dir = os.path.join(config.output_dir, "intermediate", genome_id)
+    # Create intermediate directory (genome_id will be added by extraction.py)
+    genome_output_dir = os.path.join(config.output_dir, "intermediate")
 
     try:
         # Extract features using existing extraction functions
