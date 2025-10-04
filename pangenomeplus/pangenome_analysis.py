@@ -223,13 +223,14 @@ def _create_presence_absence_heatmap(
                 family_to_genomes[family_id].add(feature.genome_id)
 
     # Select most variable families (not 100% core, not singleton)
+    # Sort by genome count ASCENDING to show truly variable families (lowest counts = highest variability)
     n_genomes = len(genome_ids)
     variable_families = [
         (fam, len(genomes))
         for fam, genomes in family_to_genomes.items()
         if 1 < len(genomes) < n_genomes
     ]
-    variable_families.sort(key=lambda x: x[1], reverse=True)
+    variable_families.sort(key=lambda x: x[1])  # Ascending: most variable first
     selected_families = [fam for fam, _ in variable_families[:top_n]]
 
     if not selected_families:
