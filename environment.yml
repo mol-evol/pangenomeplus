@@ -1,0 +1,36 @@
+name: pangenomeplus
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+
+dependencies:
+  # Python version
+  - python>=3.8
+
+  # External bioinformatics tools (compiled binaries)
+  - prodigal
+  - mmseqs2>=13.0
+  - trnascan-se>=2.0
+  - barrnap>=0.9
+  - minced>=0.4
+
+  # Python dependencies
+  - biopython>=1.79
+  - matplotlib>=3.5.0
+  - seaborn>=0.12.0
+  - rich>=13.0.0
+
+  # Development dependencies (optional, can be commented out for production use)
+  - pytest>=7.0
+  - pytest-cov>=4.0
+  - black>=22.0
+  - isort>=5.0
+  - flake8>=5.0
+  - mypy>=0.991
+  - pre-commit>=2.20
+
+  # Install PanGenomePlus package from local directory
+  - pip
+  - pip:
+    - -e .

@@ -22,11 +22,48 @@ PanGenomePlus is a Python-based pangenome analysis pipeline that analyzes **all 
 - **Disk Space**: Varies by dataset (typically 2-10x genome data size)
 - **Python**: 3.8 or higher
 
-### External Tool Dependencies
+## Installation
 
-PanGenomePlus orchestrates specialized bioinformatics tools. You must install these tools before running the pipeline:
+### Option 1: Conda Environment (Recommended)
 
-#### Required Tools
+The easiest way to install PanGenomePlus with all dependencies:
+
+```bash
+# Clone repository
+git clone https://github.com/mol-evol/pangenomeplus.git
+cd pangenomeplus
+
+# Create conda environment with all dependencies
+conda env create -f environment.yml
+
+# Activate environment
+conda activate pangenomeplus
+
+# Verify installation
+pangenomeplus --help
+```
+
+This single command installs:
+- All external bioinformatics tools (Prodigal, MMseqs2, tRNAscan-SE, Barrnap, MINCED)
+- All Python dependencies
+- PanGenomePlus package
+
+**Verify tools are installed:**
+```bash
+prodigal -v
+mmseqs version
+tRNAscan-SE -h
+barrnap --version
+minced --version
+```
+
+### Option 2: Manual Installation
+
+If you prefer not to use conda, install dependencies manually:
+
+#### External Tool Dependencies
+
+PanGenomePlus requires these bioinformatics tools to be installed and accessible via `PATH`:
 
 1. **Prodigal** - Gene prediction
    ```bash
@@ -35,9 +72,6 @@ PanGenomePlus orchestrates specialized bioinformatics tools. You must install th
 
    # macOS (Homebrew)
    brew install prodigal
-
-   # Conda
-   conda install -c bioconda prodigal
    ```
 
 2. **MMseqs2** - Sequence clustering (version 13+)
@@ -47,9 +81,6 @@ PanGenomePlus orchestrates specialized bioinformatics tools. You must install th
 
    # macOS (Homebrew)
    brew install mmseqs2
-
-   # Conda
-   conda install -c bioconda mmseqs2
    ```
 
 3. **tRNAscan-SE** - tRNA detection (version 2.0+)
@@ -59,9 +90,6 @@ PanGenomePlus orchestrates specialized bioinformatics tools. You must install th
 
    # macOS (Homebrew)
    brew install trnascan-se
-
-   # Conda
-   conda install -c bioconda trnascan-se
    ```
 
 4. **Barrnap** - rRNA detection (version 0.9+)
@@ -71,60 +99,39 @@ PanGenomePlus orchestrates specialized bioinformatics tools. You must install th
 
    # macOS (Homebrew)
    brew install barrnap
-
-   # Conda
-   conda install -c bioconda barrnap
    ```
 
 5. **MINCED** - CRISPR detection (version 0.4+)
    ```bash
-   # Conda
-   conda install -c bioconda minced
-
    # Manual installation
    git clone https://github.com/ctSkennerton/minced.git
    cd minced && make
    # Add to PATH
    ```
 
-#### Verify Installation
-All tools must be accessible via your `PATH`. Test with:
-```bash
-prodigal -v
-mmseqs version
-tRNAscan-SE -h
-barrnap --version
-minced --version
-```
+#### Install PanGenomePlus Package
 
-## Installation
+After installing external tools:
 
-### Option 1: Install from PyPI (when available)
-```bash
-pip install pangenomeplus
-```
-
-### Option 2: Install from GitHub
 ```bash
 # Clone repository
 git clone https://github.com/mol-evol/pangenomeplus.git
 cd pangenomeplus
 
-# Install in development mode
+# Install in virtual environment (recommended)
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install package
 pip install -e .
 ```
 
-### Option 3: Install in Virtual Environment (recommended)
+### Option 3: Install from PyPI (when available)
 ```bash
-# Create virtual environment
-python3 -m venv pgp-env
-source pgp-env/bin/activate  # On Windows: pgp-env\Scripts\activate
-
-# Clone and install
-git clone https://github.com/mol-evol/pangenomeplus.git
-cd pangenomeplus
-pip install -e .
+pip install pangenomeplus
 ```
+
+**Note:** You still need to install external bioinformatics tools separately (see Option 2).
 
 ## Quick Start
 
