@@ -625,3 +625,5 @@ PanGenomePlus is released under the MIT License. See `LICENSE` file for details.
 ## Version
 
 Current version: 0.1.0 (Alpha)
+
+*Note: Version number is maintained in `pangenomeplus/__init__.py` as single source of truth.*

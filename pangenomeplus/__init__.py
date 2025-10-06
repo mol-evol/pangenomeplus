@@ -6,5 +6,5 @@ including protein-coding genes, intergenic regions, tRNAs, rRNAs, and CRISPR arr
 """
 
 __version__ = "0.1.0"
-__author__ = "PanGenomePlus Team"
-__email__ = "pangenomeplus@example.com"
+__author__ = "James McInerney"
+__github__ = "https://github.com/mol-evol/pangenomeplus"

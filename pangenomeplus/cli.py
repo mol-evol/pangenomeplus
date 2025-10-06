@@ -15,8 +15,10 @@ import os
 import sys
 from pathlib import Path
 
+from .banners import print_startup_banner
 from .constants import FeatureType
 from .pipeline import PipelineConfig, process_genomes
+from .version_check import check_for_updates
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -41,7 +43,7 @@ Examples:
     pangenomeplus --genome-dir genomes/ --output-dir results/ \\
         --clustering-identity 0.9 --clustering-coverage 0.9
 
-For more information, visit: https://github.com/your-org/pangenomeplus
+For more information, visit: https://github.com/mol-evol/pangenomeplus
         """,
     )
 
@@ -517,6 +519,10 @@ def main() -> int:
 
         # Set up logging
         logger = setup_logging(args.log_level)
+
+        # Display startup banner with version check
+        update_version = check_for_updates()
+        print_startup_banner(update_available=update_version)
 
         # Validate arguments
         validate_arguments(args)

@@ -1,8 +1,11 @@
 from setuptools import find_packages, setup
 
+# Import version from single source of truth
+from pangenomeplus import __version__
+
 setup(
     name="pangenomeplus",
-    version="0.1.0",
+    version=__version__,
     description="Comprehensive pangenome analysis pipeline for all genomic features",
     author="James McInerney",
     packages=find_packages(),
