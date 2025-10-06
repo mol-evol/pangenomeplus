@@ -35,6 +35,13 @@ CORE_GENOME_THRESHOLD = 0.95  # Present in ≥95% of genomes
 CLOUD_GENOME_THRESHOLD = 0.15  # Present in <15% of genomes
 # Accessory families are implicitly between these thresholds (15-95%)
 
+# Pangenome openness classification thresholds
+# Used in: pangenome_analysis.py for classifying pangenome as open/closed/intermediate
+# Based on growth rate (families gained per genome added)
+PANGENOME_OPEN_THRESHOLD = 50  # Growth rate > 50 families/genome = open pangenome
+PANGENOME_CLOSED_THRESHOLD = 10  # Growth rate < 10 families/genome = closed pangenome
+# Intermediate pangenomes fall between these values (10-50 families/genome)
+
 # Pipeline configuration defaults
 MIN_INTERGENIC_LENGTH = 50  # Minimum intergenic region length in base pairs
 CHECKPOINT_INTERVAL = 10  # Save checkpoint every N genomes during processing
@@ -59,13 +66,33 @@ class ClusteringDefaults:
 class VizParams:
     """Visualization parameters for plots and figures.
 
-    Used in: pangenome_analysis.py lines 41, 96, 135, 224
+    Used in: pangenome_analysis.py for all visualizations
     """
+    # Figure sizes
     DEFAULT_FIGSIZE = (10, 6)
     HEATMAP_FIGSIZE = (14, 8)
     PIE_FIGSIZE = (8, 6)
     DPI = 300
+
+    # Data display limits
     TOP_VARIABLE_FAMILIES = 50  # Number of families to show in heatmap
+    FAMILY_NAME_TRUNCATE = 15  # Truncate family names to this length
+
+    # Font sizes
+    FONT_SIZE_LABEL = 12  # Axis labels
+    FONT_SIZE_TITLE = 14  # Plot titles
+    FONT_SIZE_LEGEND = 10  # Legend text
+
+    # Visual styling
+    ALPHA_TRANSPARENCY = 0.2  # Alpha for uncertainty bands
+    GRID_ALPHA = 0.3  # Alpha for grid lines
+    PIE_START_ANGLE = 90  # Starting angle for pie chart
+    PIE_EXPLODE_CORE = 0.05  # Explosion distance for core slice
+    LABEL_ROTATION = 90  # Rotation angle for x-axis labels
+
+    # Heatmap sizing
+    HEATMAP_MIN_HEIGHT = 8  # Minimum heatmap height
+    HEATMAP_HEIGHT_PER_GENOME = 0.4  # Additional height per genome
 
 
 # File handling

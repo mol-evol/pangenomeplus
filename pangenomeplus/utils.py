@@ -64,7 +64,8 @@ def validate_fasta(filepath: Union[str, Path]) -> bool:
     try:
         records = list(SeqIO.parse(filepath, "fasta"))
         return len(records) > 0
-    except Exception:
+    except (IOError, OSError, ValueError, UnicodeDecodeError) as e:
+        logging.warning(f"Failed to validate FASTA file {filepath}: {e}")
         return False
 
 

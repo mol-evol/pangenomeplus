@@ -21,7 +21,14 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from .clustering import FamilyStats
 from .compact_ids import CompactIDManager
-from .constants import FeatureType, VizParams
+from .constants import (
+    CLOUD_GENOME_THRESHOLD,
+    CORE_GENOME_THRESHOLD,
+    FeatureType,
+    PANGENOME_CLOSED_THRESHOLD,
+    PANGENOME_OPEN_THRESHOLD,
+    VizParams,
+)
 
 
 def _create_rarefaction_plot(
@@ -437,9 +444,9 @@ def analyze_pangenome_openness(
     growth_ratio = final_pangenome_size / initial_pangenome_size
 
     # Classification based on growth pattern
-    if pangenome_growth_rate > 50:  # Arbitrary threshold - could be refined
+    if pangenome_growth_rate > PANGENOME_OPEN_THRESHOLD:
         pangenome_type = "open"
-    elif pangenome_growth_rate < 10:
+    elif pangenome_growth_rate < PANGENOME_CLOSED_THRESHOLD:
         pangenome_type = "closed"
     else:
         pangenome_type = "intermediate"
@@ -560,9 +567,9 @@ def generate_pangenome_summary_report(
 
         f.write("\n## Analysis Methodology\n")
         f.write("- Rarefaction curves calculated using random subsampling\n")
-        f.write("- Core families: present in ≥95% of genomes\n")
-        f.write("- Accessory families: present in 15-95% of genomes\n")
-        f.write("- Cloud families: present in <15% of genomes\n")
+        f.write(f"- Core families: present in ≥{CORE_GENOME_THRESHOLD*100:.0f}% of genomes\n")
+        f.write(f"- Accessory families: present in {CLOUD_GENOME_THRESHOLD*100:.0f}-{CORE_GENOME_THRESHOLD*100:.0f}% of genomes\n")
+        f.write(f"- Cloud families: present in <{CLOUD_GENOME_THRESHOLD*100:.0f}% of genomes\n")
 
     # Save JSON data for further analysis
     json_file = output_file.replace(".txt", "_data.json")
