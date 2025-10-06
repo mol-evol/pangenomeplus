@@ -58,7 +58,7 @@ def _create_rarefaction_plot(
             x,
             [m - s for m, s in zip(y, std)],
             [m + s for m, s in zip(y, std)],
-            alpha=0.2,
+            alpha=VizParams.ALPHA_TRANSPARENCY,
             color="blue",
         )
 
@@ -73,7 +73,7 @@ def _create_rarefaction_plot(
             x,
             [m - s for m, s in zip(y, std)],
             [m + s for m, s in zip(y, std)],
-            alpha=0.2,
+            alpha=VizParams.ALPHA_TRANSPARENCY,
             color="red",
         )
 
@@ -88,15 +88,15 @@ def _create_rarefaction_plot(
             x,
             [m - s for m, s in zip(y, std)],
             [m + s for m, s in zip(y, std)],
-            alpha=0.2,
+            alpha=VizParams.ALPHA_TRANSPARENCY,
             color="green",
         )
 
-    ax.set_xlabel("Number of Genomes", fontsize=12)
-    ax.set_ylabel("Number of Gene Families", fontsize=12)
-    ax.set_title("Pangenome Rarefaction Curves", fontsize=14, fontweight="bold")
-    ax.legend(loc="best", fontsize=10)
-    ax.grid(True, alpha=0.3)
+    ax.set_xlabel("Number of Genomes", fontsize=VizParams.FONT_SIZE_LABEL)
+    ax.set_ylabel("Number of Gene Families", fontsize=VizParams.FONT_SIZE_LABEL)
+    ax.set_title("Pangenome Rarefaction Curves", fontsize=VizParams.FONT_SIZE_TITLE, fontweight="bold")
+    ax.legend(loc="best", fontsize=VizParams.FONT_SIZE_LEGEND)
+    ax.grid(True, alpha=VizParams.GRID_ALPHA)
 
     plt.tight_layout()
     plt.savefig(vis_dir / "rarefaction_curves.png", dpi=VizParams.DPI)
@@ -134,7 +134,7 @@ def _create_classification_pie(total_families: Dict[str, int], output_dir: str) 
         shadow=True,
         startangle=90,
     )
-    ax.set_title("Pangenome Family Classification", fontsize=14, fontweight="bold")
+    ax.set_title("Pangenome Family Classification", fontsize=VizParams.FONT_SIZE_TITLE, fontweight="bold")
 
     plt.tight_layout()
     plt.savefig(vis_dir / "family_classification.png", dpi=VizParams.DPI)
@@ -181,12 +181,12 @@ def _create_feature_type_bars(
             va="bottom",
         )
 
-    ax.set_xlabel("Feature Type", fontsize=12)
-    ax.set_ylabel("Number of Families", fontsize=12)
+    ax.set_xlabel("Feature Type", fontsize=VizParams.FONT_SIZE_LABEL)
+    ax.set_ylabel("Number of Families", fontsize=VizParams.FONT_SIZE_LABEL)
     ax.set_title(
-        "Gene Family Distribution by Feature Type", fontsize=14, fontweight="bold"
+        "Gene Family Distribution by Feature Type", fontsize=VizParams.FONT_SIZE_TITLE, fontweight="bold"
     )
-    ax.grid(axis="y", alpha=0.3)
+    ax.grid(axis="y", alpha=VizParams.GRID_ALPHA)
 
     plt.tight_layout()
     plt.savefig(vis_dir / "feature_type_distribution.png", dpi=VizParams.DPI)
@@ -253,10 +253,10 @@ def _create_presence_absence_heatmap(
         matrix.append(row)
 
     # Plot heatmap
-    fig, ax = plt.subplots(figsize=(VizParams.HEATMAP_FIGSIZE[0], max(8, len(genome_ids) * 0.4)))
+    fig, ax = plt.subplots(figsize=(VizParams.HEATMAP_FIGSIZE[0], max(VizParams.HEATMAP_MIN_HEIGHT, len(genome_ids) * VizParams.HEATMAP_HEIGHT_PER_GENOME)))
     sns.heatmap(
         np.array(matrix),
-        xticklabels=[f[:15] + "..." if len(f) > 15 else f for f in selected_families],
+        xticklabels=[f[:VizParams.FAMILY_NAME_TRUNCATE] + "..." if len(f) > VizParams.FAMILY_NAME_TRUNCATE else f for f in selected_families],
         yticklabels=genome_ids,
         cmap=["white", "#3182bd"],
         cbar_kws={"label": "Present"},
@@ -265,11 +265,11 @@ def _create_presence_absence_heatmap(
 
     ax.set_title(
         f"Presence/Absence Pattern (Top {len(selected_families)} Variable Families)",
-        fontsize=14,
+        fontsize=VizParams.FONT_SIZE_TITLE,
         fontweight="bold",
     )
-    ax.set_xlabel("Gene Families", fontsize=12)
-    ax.set_ylabel("Genomes", fontsize=12)
+    ax.set_xlabel("Gene Families", fontsize=VizParams.FONT_SIZE_LABEL)
+    ax.set_ylabel("Genomes", fontsize=VizParams.FONT_SIZE_LABEL)
     plt.xticks(rotation=90)
 
     plt.tight_layout()

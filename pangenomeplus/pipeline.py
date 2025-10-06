@@ -18,7 +18,6 @@ import csv
 import json
 import logging
 import os
-import random
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -39,6 +38,7 @@ from .compact_ids import CompactIDManager
 from .constants import CHECKPOINT_INTERVAL, FeatureType, GENOME_EXTENSIONS, OUTPUT_FILES
 from .core import Feature
 from .extraction import ExtractionError, extract_genome_features
+from .playful_messages import generate_playful_message
 
 
 def extract_genome_name(genome_file: str) -> str:
@@ -51,202 +51,6 @@ def format_time(seconds: float) -> str:
     minutes = int(seconds // 60)
     secs = int(seconds % 60)
     return f"{minutes:02d}:{secs:02d}"
-
-
-def generate_playful_message() -> str:
-    """Generate a dynamic playful status message for genomic analysis.
-
-    Returns:
-        A randomly generated phrase in format: "verb modifier noun"
-        Example: "wrangling prokaryotic widgets"
-    """
-    # Actions the software performs
-    verbs = [
-        "wrangling",
-        "herding",
-        "clustering",
-        "sorting",
-        "fishing",
-        "cataloging",
-        "hunting",
-        "mining",
-        "juggling",
-        "assembling",
-        "aligning",
-        "mapping",
-        "partitioning",
-        "annotating",
-        "detecting",
-        "untangling",
-        "collecting",
-        "organizing",
-        "indexing",
-        "comparing",
-        "disassembling",
-        "decombobulating",
-        "discombobulating",
-        "bamboozling",
-        "flummoxing",
-        "befuddling",
-        "hornswoggling",
-        "finagling",
-        "jiggery-pokering",
-        "kerfuffling",
-        "rambunctifying",
-        "shenaniganning",
-        "hullaballooing",
-        "perambulating",
-        "confabulating",
-        "recalcitrating",
-        "obfuscating",
-        "triangulating",
-        "extrapolating",
-        "prognosticating",
-        "pontificating",
-        "defenestrating",
-        "discombobifying",
-        "flibbertigibbeting",
-        "skedaddling",
-        "gallivanting",
-        "traipsing",
-        "meandering",
-        "floundering",
-        "fumbling",
-        "tinkering",
-        "fiddling",
-        "doodling",
-        "noodling",
-    ]
-
-    # Prokaryotic/genomic descriptors
-    modifiers = [
-        "bug",
-        "microbe",
-        "prokaryotic",
-        "homologous",
-        "core-genome",
-        "accessory",
-        "plasmid",
-        "chromosomal",
-        "prophage",
-        "CRISPR",
-        "operon",
-        "genetic",
-        "metagenomic",
-        "syntenic",
-        "pangenomic",
-        "xenologous",
-        "mobile",
-        "conjugative",
-        "transposon",
-        "genomic",
-        "buggy",
-        "germy",
-        "critter",
-        "microbe-y",
-        "beastie",
-        "essential",
-        "bonus",
-        "extra",
-        "spare",
-        "optional",
-        "freeloading",
-        "hitchhiking",
-        "wandering",
-        "roaming",
-        "nomadic",
-        "zombie",
-        "lurking",
-        "sneaky",
-        "hidden",
-        "dormant",
-        "cousin",
-        "sibling",
-        "family",
-        "kinfolk",
-        "related",
-        "neighborly",
-        "adjacent",
-        "side-by-side",
-        "clustered",
-        "huddled",
-        "choppy",
-        "snippy",
-        "scissor-happy",
-        "editor",
-        "pruning",
-        "copy-paste",
-        "duplicated",
-        "redundant",
-        "repetitive",
-        "cloned",
-        "jumping",
-        "hopping",
-        "vagrant",
-        "drifting",
-        "core",
-        "backbone",
-        "skeleton",
-        "fundamental",
-        "bread-and-butter",
-    ]
-
-    # Whimsical objects
-    nouns = [
-        "confetti",
-        "sprinkles",
-        "jellybeans",
-        "breadcrumbs",
-        "marbles",
-        "beads",
-        "nuggets",
-        "clusters",
-        "widgets",
-        "doodads",
-        "gizmos",
-        "baubles",
-        "trinkets",
-        "bits",
-        "chunks",
-        "morsels",
-        "tidbits",
-        "specks",
-        "crumbs",
-        "fragments",
-        "modules",
-        "cassettes",
-        "islands",
-        "patches",
-        "segments",
-        "cartridges",
-        "packets",
-        "bundles",
-        "arrays",
-        "scaffolds",
-        "contigs",
-        "motifs",
-        "domains",
-        "elements",
-        "loci",
-        "regions",
-        "zones",
-        "stretches",
-        "blocks",
-        "strings",
-        "strands",
-        "units",
-        "subunits",
-        "components",
-        "assemblies",
-        "constructs",
-        "repertoires",
-        "collections",
-        "libraries",
-        "catalogs",
-        "inventories",
-    ]
-
-    return f"{random.choice(verbs)} {random.choice(modifiers)} {random.choice(nouns)}"
 
 
 def create_rich_progress(playful: bool = True) -> Progress:
@@ -889,8 +693,8 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
 
     # Display header if playful mode is enabled
     if config.playful_mode:
-        print(f"\nPanGenomePlus | Analyzing {stats.total_genomes} genomes")
-        print(f"Output directory: {config.output_dir}\n")
+        logger.info(f"PanGenomePlus | Analyzing {stats.total_genomes} genomes")
+        logger.info(f"Output directory: {config.output_dir}")
 
     # Initialize compact ID manager
     id_manager = CompactIDManager()
@@ -1094,7 +898,7 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
 
     # Display completion message if playful mode is enabled
     if config.playful_mode:
-        print("\n✓ Analysis complete")
+        logger.info("✓ Analysis complete")
 
     logger.info("Feature extraction summary:")
     for feature_type, count in stats.feature_counts.items():
