@@ -693,8 +693,8 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
 
     # Display header if playful mode is enabled
     if config.playful_mode:
-        logger.info(f"PanGenomePlus | Analyzing {stats.total_genomes} genomes")
-        logger.info(f"Output directory: {config.output_dir}")
+        print(f"\nPanGenomePlus | Analyzing {stats.total_genomes} genomes")
+        print(f"Output directory: {config.output_dir}\n")
 
     # Initialize compact ID manager
     id_manager = CompactIDManager()
@@ -898,7 +898,7 @@ def process_genomes(config: PipelineConfig) -> ProcessingStats:
 
     # Display completion message if playful mode is enabled
     if config.playful_mode:
-        logger.info("✓ Analysis complete")
+        print("\n✓ Analysis complete")
 
     logger.info("Feature extraction summary:")
     for feature_type, count in stats.feature_counts.items():
