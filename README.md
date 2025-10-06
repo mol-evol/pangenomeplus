@@ -543,8 +543,8 @@ Analysis of 6 *E. coli* genomes produced:
   - tRNAs: 29 core families
   - rRNAs: 3 core families
   - CRISPR: 0 core families
-- **Accessory families** (15-95%): 5,907 families (53.4%)
-- **Cloud families** (<15%): 0 families
+- **Accessory families** (15-95%): 3,491 families (31.6%)
+- **Cloud families** (<15%): 2,416 families (21.8%)
 
 **Pangenome type**: OPEN (growth rate: 780 families/genome)
 
@@ -555,7 +555,7 @@ Analysis of 6 *E. coli* genomes produced:
 *Figure 2: Distribution of gene families by feature type (proteins, intergenic regions, tRNAs, rRNAs).*
 
 ![Family Classification](images/family_classification.png)
-*Figure 3: Proportional distribution of core and accessory families (47% core, 53% accessory).*
+*Figure 3: Proportional distribution of core, accessory, and cloud families (46.6% core, 31.6% accessory, 21.8% cloud).*
 
 ![Presence/Absence Heatmap](images/presence_absence_heatmap.png)
 *Figure 4: Presence/absence patterns for the 50 most variable gene families across all 6 genomes.*
