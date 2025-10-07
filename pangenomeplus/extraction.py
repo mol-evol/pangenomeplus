@@ -511,6 +511,271 @@ def parse_prodigal_gff(
     return features
 
 
+def _parse_gff_attributes(attributes: str) -> Dict[str, str]:
+    """Parse GFF3 attributes column into dictionary.
+
+    Single responsibility: String parsing only.
+
+    Args:
+        attributes: GFF3 attributes string (key=value;key=value format)
+
+    Returns:
+        Dictionary mapping attribute keys to values
+
+    Example:
+        >>> _parse_gff_attributes("ID=BAKTA_00001;Name=dnaA;gene=dnaA")
+        {'ID': 'BAKTA_00001', 'Name': 'dnaA', 'gene': 'dnaA'}
+    """
+    result = {}
+
+    if not attributes or attributes == ".":
+        return result
+
+    for attr in attributes.split(";"):
+        attr = attr.strip()
+        if "=" in attr:
+            key, value = attr.split("=", 1)
+            result[key.strip()] = value.strip()
+
+    return result
+
+
+def _map_bakta_feature_type(gff_type: str, attributes: Dict[str, str]) -> Optional[str]:
+    """Map Bakta GFF feature type to PanGenomePlus type.
+
+    Returns: "P", "T", "R", "C", or None if feature type not used.
+
+    Single responsibility: Feature type mapping logic only.
+
+    Args:
+        gff_type: GFF3 feature type (e.g., "CDS", "tRNA", "rRNA", "repeat_region")
+        attributes: Parsed GFF3 attributes
+
+    Returns:
+        PanGenomePlus feature type or None if not extracted
+    """
+    # CDS -> Protein-coding genes
+    if gff_type == "CDS":
+        return "P"
+
+    # tRNA -> tRNA features
+    if gff_type == "tRNA":
+        return "T"
+
+    # rRNA -> rRNA features
+    if gff_type == "rRNA":
+        return "R"
+
+    # repeat_region with repeat_family=CRISPR -> CRISPR elements
+    if gff_type == "repeat_region":
+        repeat_family = attributes.get("repeat_family", "")
+        if repeat_family == "CRISPR":
+            return "C"
+
+    # All other feature types are not extracted
+    return None
+
+
+def _extract_sequence_from_coordinates(
+    contig_seq: str, start: int, end: int, strand: str
+) -> str:
+    """Extract sequence from genomic coordinates.
+
+    Single responsibility: Coordinate-based extraction only.
+    Handles strand orientation.
+
+    Args:
+        contig_seq: Full contig sequence
+        start: Start coordinate (1-based)
+        end: End coordinate (1-based, inclusive)
+        strand: Strand ("+", "-", or ".")
+
+    Returns:
+        Extracted sequence (reverse complemented if strand is "-")
+
+    Raises:
+        IndexError: If coordinates are out of bounds
+    """
+    # Extract sequence (convert 1-based to 0-based indexing)
+    sequence = contig_seq[start - 1 : end]
+
+    # Reverse complement for minus strand
+    if strand == "-":
+        complement_map = str.maketrans("ATCG", "TAGC")
+        sequence = sequence.translate(complement_map)[::-1]
+
+    return sequence
+
+
+def detect_gff_format(gff_file: str) -> str:
+    """Detect GFF format (Bakta vs Prodigal).
+
+    Single responsibility: Format detection only.
+
+    Args:
+        gff_file: Path to GFF file
+
+    Returns:
+        "bakta" if Bakta-annotated GFF, "prodigal" otherwise
+
+    Note:
+        Bakta GFF files contain "Bakta" in source column (column 2)
+        and have diverse feature types (tRNA, rRNA, repeat_region)
+    """
+    try:
+        with open(gff_file, "r") as f:
+            for line in f:
+                if line.startswith("#"):
+                    # Check for Bakta in header
+                    if "Bakta" in line:
+                        return "bakta"
+                    continue
+
+                if not line.strip():
+                    continue
+
+                fields = line.strip().split("\t")
+                if len(fields) >= 3:
+                    source = fields[1]
+                    feature_type = fields[2]
+
+                    # Bakta uses "Bakta" as source
+                    if source == "Bakta":
+                        return "bakta"
+
+                    # Bakta has tRNA, rRNA, repeat_region
+                    if feature_type in ["tRNA", "rRNA", "repeat_region"]:
+                        return "bakta"
+
+                    # Only check first few non-comment lines
+                    break
+
+        # Default to Prodigal if no Bakta indicators found
+        return "prodigal"
+
+    except Exception:
+        # If detection fails, assume Prodigal
+        return "prodigal"
+
+
+def parse_bakta_gff(
+    gff_file: str,
+    genome_file: str,
+    genome_id: str,
+    id_manager: CompactIDManager
+) -> Dict[str, List[Feature]]:
+    """Parse Bakta GFF3 and extract all relevant features.
+
+    Returns: Dict mapping feature type ("P", "T", "R", "C") to feature lists.
+
+    Single responsibility: Orchestrate parsing, delegate to helper functions.
+    Open/Closed: Can add new feature types without modifying this function.
+
+    Args:
+        gff_file: Path to Bakta GFF3 output
+        genome_file: Path to original genome FASTA file
+        genome_id: Identifier for this genome
+        id_manager: CompactIDManager for ID assignment
+
+    Returns:
+        Dictionary mapping feature types to lists of Feature objects
+
+    Raises:
+        ExtractionError: If parsing fails
+    """
+    features_by_type = {}
+
+    # Load genome sequences - handle multi-contig genomes
+    try:
+        genome_records = list(SeqIO.parse(genome_file, "fasta"))
+        if not genome_records:
+            raise ValueError("No sequences found")
+
+        # Create contig lookup for multi-contig genomes
+        contig_sequences = {record.id: str(record.seq) for record in genome_records}
+    except Exception as e:
+        raise ExtractionError(f"Failed to load genome sequence: {e}")
+
+    try:
+        with open(gff_file, "r") as f:
+            for line in f:
+                if line.startswith("#") or not line.strip():
+                    continue
+
+                fields = line.strip().split("\t")
+                if len(fields) != 9:
+                    continue
+
+                # Parse GFF3 fields
+                contig = fields[0]
+                gff_type = fields[2]
+                start = int(fields[3])
+                end = int(fields[4])
+                strand = fields[6]
+                attributes_str = fields[8]
+
+                # Parse attributes using helper function (Single Responsibility)
+                attributes = _parse_gff_attributes(attributes_str)
+
+                # Map to PanGenomePlus feature type (Single Responsibility)
+                feature_type = _map_bakta_feature_type(gff_type, attributes)
+
+                # Skip features we don't extract
+                if feature_type is None:
+                    continue
+
+                # Extract sequence using helper function (Single Responsibility)
+                try:
+                    if contig not in contig_sequences:
+                        raise ExtractionError(f"Contig {contig} not found in genome")
+
+                    contig_seq = contig_sequences[contig]
+                    sequence = _extract_sequence_from_coordinates(
+                        contig_seq, start, end, strand
+                    )
+                except IndexError:
+                    contig_len = len(contig_sequences.get(contig, ""))
+                    raise ExtractionError(
+                        f"Invalid coordinates: {start}-{end} for contig {contig} "
+                        f"length {contig_len}"
+                    )
+
+                # Generate compact ID
+                compact_id = id_manager.generate_compact_id(feature_type)
+
+                # Get original ID from attributes
+                original_id = attributes.get("ID", "")
+
+                # Create Feature object
+                feature = Feature(
+                    compact_id=compact_id,
+                    genome_id=genome_id,
+                    contig=contig,
+                    start=start,
+                    end=end,
+                    strand=strand,
+                    sequence=sequence,
+                    feature_type=feature_type,
+                    original_id=original_id,
+                    metadata=attributes,
+                )
+
+                # Add to appropriate feature type list
+                if feature_type not in features_by_type:
+                    features_by_type[feature_type] = []
+                features_by_type[feature_type].append(feature)
+
+                # Register in ID manager
+                id_manager.register_feature(feature)
+
+    except Exception as e:
+        if isinstance(e, ExtractionError):
+            raise
+        raise ExtractionError(f"Failed to parse Bakta GFF: {e}")
+
+    return features_by_type
+
+
 def calculate_intergenic_regions(
     features: List[Feature],
     genome_file: str,
@@ -520,10 +785,11 @@ def calculate_intergenic_regions(
 ) -> List[Feature]:
     """Calculate intergenic regions between annotated features.
 
-    Uses linear time O(n) algorithm - assumes features are coordinate-sorted.
+    Single responsibility: Calculate gaps between ALL annotated features.
+    DRY: Reused for both Prodigal-only and Bakta GFF workflows.
 
     Args:
-        features: List of annotated features (sorted by start coordinate)
+        features: List of annotated features (from ALL types: CDS, tRNA, rRNA, CRISPR)
         genome_file: Path to genome FASTA file
         genome_id: Identifier for this genome
         id_manager: CompactIDManager for ID assignment
@@ -536,6 +802,9 @@ def calculate_intergenic_regions(
         ExtractionError: If calculation fails
     """
     intergenic_features = []
+
+    if not features:
+        return intergenic_features
 
     # Load genome sequences - handle multi-contig genomes
     try:
@@ -550,13 +819,14 @@ def calculate_intergenic_regions(
     except Exception as e:
         raise ExtractionError(f"Failed to load genome sequence: {e}")
 
-    # Features already coordinate-sorted from GFF3 parsing - use directly for O(n) algorithm
-    # No need for O(n log n) sorting operation per CLAUDE.md performance guidelines
+    # Sort features by start coordinate for O(n) gap-finding algorithm
+    # When features come from multiple types (Bakta GFF), they may not be sorted
+    sorted_features = sorted(features, key=lambda f: f.start)
 
     # Linear pass through features to find gaps - O(n)
     prev_end = 1  # Start from position 1 (1-based coordinates)
 
-    for feature in features:
+    for feature in sorted_features:
         # Check for intergenic region before this feature
         gap_start = prev_end
         gap_end = feature.start - 1
@@ -960,7 +1230,8 @@ def extract_genome_features(
     genome_output_dir = tool_output_dir  # For compatibility
     os.makedirs(genome_output_dir, exist_ok=True)
 
-    # 1. Run Prodigal for protein-coding genes (always required for intergenic calculation)
+    # 1. Run Prodigal for protein-coding genes OR use existing annotations
+    bakta_gff_used = False  # Track if we used Bakta GFF (to skip redundant tools)
     try:
         # Check for existing GFF3 file if requested
         if use_existing_annotations:
@@ -976,10 +1247,47 @@ def extract_genome_features(
 
             if existing_gff:
                 try:
-                    protein_features = parse_prodigal_gff(
-                        existing_gff, genome_file, genome_id, id_manager
-                    )
-                    all_features["proteins"] = protein_features
+                    # Detect GFF format (Bakta vs Prodigal)
+                    gff_format = detect_gff_format(existing_gff)
+                    logger = logging.getLogger(__name__)
+
+                    if gff_format == "bakta":
+                        logger.info(f"Detected Bakta GFF format: {existing_gff}")
+                        logger.info("Extracting all features from Bakta annotations (skipping external tools)")
+
+                        # Extract ALL features from Bakta GFF
+                        features_by_type = parse_bakta_gff(
+                            existing_gff, genome_file, genome_id, id_manager
+                        )
+
+                        # Map Bakta features to all_features dictionary
+                        all_features["proteins"] = features_by_type.get("P", [])
+                        all_features["tRNAs"] = features_by_type.get("T", [])
+                        all_features["rRNAs"] = features_by_type.get("R", [])
+                        all_features["CRISPR"] = features_by_type.get("C", [])
+
+                        # Mark that we used Bakta GFF (to skip external tools)
+                        bakta_gff_used = True
+
+                        # Calculate intergenic from ALL feature types
+                        if not skip_intergenic:
+                            all_annotated = []
+                            for feature_list in features_by_type.values():
+                                all_annotated.extend(feature_list)
+
+                            intergenic_features = calculate_intergenic_regions(
+                                all_annotated, genome_file, genome_id, id_manager
+                            )
+                            all_features["intergenic"] = intergenic_features
+
+                    else:
+                        # Prodigal GFF - extract CDS only
+                        logger.info(f"Detected Prodigal GFF format: {existing_gff}")
+                        protein_features = parse_prodigal_gff(
+                            existing_gff, genome_file, genome_id, id_manager
+                        )
+                        all_features["proteins"] = protein_features
+
                 except (IOError, OSError, ExtractionError) as e:
                     # Fall back to Prodigal on file or parsing errors
                     logger = logging.getLogger(__name__)
@@ -1016,8 +1324,8 @@ def extract_genome_features(
     except Exception as e:
         raise ExtractionError(f"Protein extraction failed for {genome_id}: {e}")
 
-    # 2. Calculate intergenic regions (uses protein features as boundaries)
-    if not skip_intergenic:
+    # 2. Calculate intergenic regions (skip if already done with Bakta GFF)
+    if not skip_intergenic and not bakta_gff_used:
         try:
             intergenic_gff = os.path.join(tool_output_dir, f"{genome_id}_intergenic.gff")
 
@@ -1040,8 +1348,8 @@ def extract_genome_features(
         except Exception as e:
             raise ExtractionError(f"Intergenic extraction failed for {genome_id}: {e}")
 
-    # 3. CRISPR extraction
-    if not skip_crispr:
+    # 3. CRISPR extraction (skip if already extracted from Bakta GFF)
+    if not skip_crispr and not bakta_gff_used:
         try:
             # Extract CRISPR parameters from tool_params
             crispr_params = {
@@ -1067,8 +1375,8 @@ def extract_genome_features(
         except Exception as e:
             raise ExtractionError(f"CRISPR extraction failed for {genome_id}: {e}")
 
-    # 4. tRNA detection with tRNAscan-SE
-    if not skip_trna:
+    # 4. tRNA detection with tRNAscan-SE (skip if already extracted from Bakta GFF)
+    if not skip_trna and not bakta_gff_used:
         try:
             trna_params = tool_params.get("trna", {})
 
@@ -1089,8 +1397,8 @@ def extract_genome_features(
         except Exception as e:
             raise ExtractionError(f"tRNA extraction failed for {genome_id}: {e}")
 
-    # 5. rRNA detection with Barrnap
-    if not skip_rrna:
+    # 5. rRNA detection with Barrnap (skip if already extracted from Bakta GFF)
+    if not skip_rrna and not bakta_gff_used:
         try:
             rrna_params = tool_params.get("rrna", {})
 

@@ -185,6 +185,50 @@ my_genomes/
 - Remove contamination before analysis
 - Verify assemblies represent single organisms (not metagenomes)
 
+### Using Pre-Annotated Genomes (Bakta GFF)
+
+**PanGenomePlus supports using existing Bakta annotations, providing 10-20× faster analysis:**
+
+#### Option 1: AllTheBacteria Database
+AllTheBacteria (https://allthebacteria.org/) provides 2.4M+ bacterial/archaeal genomes with standardized Bakta annotations:
+
+```bash
+# Download genomes with Bakta annotations from AllTheBacteria
+# Place .fna (genome) and .gff (annotation) files in the same directory
+
+pangenomeplus --genome-dir path/to/genomes/ \
+              --output-dir results/ \
+              --use-existing-annotations
+```
+
+#### Option 2: Your Own Bakta Annotations
+If you have Bakta-annotated genomes:
+
+```bash
+# Directory structure (matching names required):
+my_genomes/
+├── genome_001.fna       # Genome sequence
+├── genome_001.gff       # Bakta annotation
+├── genome_002.fna
+├── genome_002.gff
+└── ...
+
+pangenomeplus --genome-dir my_genomes/ \
+              --output-dir results/ \
+              --use-existing-annotations
+```
+
+#### Benefits of Using Bakta GFF:
+- **10-20× faster**: Skips external tool execution (Prodigal, tRNAscan-SE, Barrnap, MINCED)
+- **More accurate intergenic regions**: Calculated from ALL annotated features (not just CDS)
+- **Standardized annotations**: Consistent feature detection across genomes
+- **Extracts all features**: CDS, tRNA, rRNA, CRISPR from single GFF file
+
+#### Compatibility:
+- **Bakta GFF**: Full support (extracts all feature types)
+- **Prodigal GFF**: Backward compatible (extracts CDS only, runs other tools normally)
+- **Auto-detection**: PanGenomePlus automatically detects GFF format
+
 ## Usage Tutorial
 
 ### Step 1: Prepare Your Genomes

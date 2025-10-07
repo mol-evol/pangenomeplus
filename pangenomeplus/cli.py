@@ -267,7 +267,10 @@ For more information, visit: https://github.com/mol-evol/pangenomeplus
     annotation.add_argument(
         "--use-existing-annotations",
         action="store_true",
-        help="Use existing GFF3 files if found (default: False)",
+        help="Use existing GFF3 files if found. Supports Bakta GFF (extracts all "
+             "features: CDS, tRNA, rRNA, CRISPR - 10-20× faster) and Prodigal GFF "
+             "(extracts CDS only). GFF files must have same basename as genome FASTA files. "
+             "Format auto-detected. (default: False)",
     )
 
     # Feature selection parameters (6 parameters)

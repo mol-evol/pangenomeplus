@@ -1,0 +1,11 @@
+##gff-version 3
+##feature-ontology https://github.com/The-Sequence-Ontology/SO-Ontology/blob/v3.1/so.obo
+##source-version Bakta:1.9.3
+##sequence-region test_contig_1 1 1200
+test_contig_1	Bakta	CDS	1	300	.	+	0	ID=BAKTA_00001;Name=dnaA;gene=dnaA;product=Chromosomal replication initiator protein DnaA;locus_tag=BAKTA_00001
+test_contig_1	Bakta	tRNA	350	425	.	+	.	ID=BAKTA_00002;Name=tRNA-Ala(GGC);product=tRNA-Ala;anticodon=(pos:384..386);locus_tag=BAKTA_00002
+test_contig_1	Bakta	CDS	450	650	.	-	0	ID=BAKTA_00003;Name=recA;gene=recA;product=Protein RecA;locus_tag=BAKTA_00003
+test_contig_1	Bakta	rRNA	700	1200	.	+	.	ID=BAKTA_00004;Name=16S ribosomal RNA;product=16S ribosomal RNA;locus_tag=BAKTA_00004
+test_contig_1	Bakta	repeat_region	1220	1280	.	+	.	ID=BAKTA_00005;repeat_family=CRISPR;rpt_type=direct;rpt_unit_seq=GTCGCGCCCCGCGGGGCGTGGATTGAAAT
+test_contig_1	Bakta	CDS	1300	1500	.	+	0	ID=BAKTA_00006;product=hypothetical protein;locus_tag=BAKTA_00006
+test_contig_1	Bakta	tRNA	1550	1625	.	-	.	ID=BAKTA_00007;Name=tRNA-Gly(TCC);product=tRNA-Gly;anticodon=(pos:complement(1584..1586));locus_tag=BAKTA_00007
