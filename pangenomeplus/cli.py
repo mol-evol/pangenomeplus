@@ -78,19 +78,19 @@ For more information, visit: https://github.com/mol-evol/pangenomeplus
         help="Genetic code translation table (default: 11 for bacteria)",
     )
 
-    # MMseqs2 clustering parameters (6 parameters)
+    # MMseqs2 clustering parameters (6 global + 10 feature-specific)
     clustering = parser.add_argument_group("MMseqs2 Clustering Parameters")
+
+    # Global parameters (apply to all features unless overridden)
     clustering.add_argument(
         "--clustering-identity",
         type=float,
-        default=0.8,
-        help="Sequence identity threshold for clustering (default: 0.8)",
+        help="Global sequence identity threshold (default: feature-specific)",
     )
     clustering.add_argument(
         "--clustering-coverage",
         type=float,
-        default=0.8,
-        help="Coverage threshold for clustering (default: 0.8)",
+        help="Global coverage threshold (default: feature-specific)",
     )
     clustering.add_argument(
         "--clustering-sensitivity",
@@ -115,6 +115,58 @@ For more information, visit: https://github.com/mol-evol/pangenomeplus
         type=int,
         default=10000,
         help="Maximum sequences per query for memory management (default: 10000)",
+    )
+
+    # Feature-specific clustering parameters
+    clustering.add_argument(
+        "--protein-identity",
+        type=float,
+        help="Protein clustering identity threshold (default: 0.8)",
+    )
+    clustering.add_argument(
+        "--protein-coverage",
+        type=float,
+        help="Protein clustering coverage threshold (default: 0.8)",
+    )
+    clustering.add_argument(
+        "--intergenic-identity",
+        type=float,
+        help="Intergenic clustering identity threshold (default: 0.7)",
+    )
+    clustering.add_argument(
+        "--intergenic-coverage",
+        type=float,
+        help="Intergenic clustering coverage threshold (default: 0.5)",
+    )
+    clustering.add_argument(
+        "--trna-identity",
+        type=float,
+        help="tRNA clustering identity threshold (default: 0.9)",
+    )
+    clustering.add_argument(
+        "--trna-coverage",
+        type=float,
+        help="tRNA clustering coverage threshold (default: 0.9)",
+    )
+    clustering.add_argument(
+        "--rrna-identity",
+        type=float,
+        help="rRNA clustering identity threshold (default: 0.95)",
+    )
+    clustering.add_argument(
+        "--rrna-coverage",
+        type=float,
+        help="rRNA clustering coverage threshold (default: 0.95)",
+    )
+    clustering.add_argument(
+        "--crispr-identity",
+        type=float,
+        help="CRISPR clustering identity threshold (default: 0.8)",
+    )
+    clustering.add_argument(
+        "--crispr-coverage",
+        type=float,
+        help="CRISPR clustering coverage threshold (default: 0.6)",
     )
 
     # tRNA detection parameters (3 parameters)
@@ -326,15 +378,37 @@ def validate_arguments(args: argparse.Namespace) -> None:
         errors.append("Cannot specify both --protein-only and --non-coding-only")
 
 
-    # Validate parameter ranges
-    if not (0.0 <= args.clustering_identity <= 1.0):
+    # Validate parameter ranges (only if provided)
+    if args.clustering_identity is not None and not (
+        0.0 <= args.clustering_identity <= 1.0
+    ):
         errors.append("Clustering identity must be between 0.0 and 1.0")
 
-    if not (0.0 <= args.clustering_coverage <= 1.0):
+    if args.clustering_coverage is not None and not (
+        0.0 <= args.clustering_coverage <= 1.0
+    ):
         errors.append("Clustering coverage must be between 0.0 and 1.0")
 
     if not (1.0 <= args.clustering_sensitivity <= 8.0):
         errors.append("Clustering sensitivity must be between 1.0 and 8.0")
+
+    # Validate feature-specific clustering parameters
+    feature_params = [
+        ("protein_identity", args.protein_identity),
+        ("protein_coverage", args.protein_coverage),
+        ("intergenic_identity", args.intergenic_identity),
+        ("intergenic_coverage", args.intergenic_coverage),
+        ("trna_identity", args.trna_identity),
+        ("trna_coverage", args.trna_coverage),
+        ("rrna_identity", args.rrna_identity),
+        ("rrna_coverage", args.rrna_coverage),
+        ("crispr_identity", args.crispr_identity),
+        ("crispr_coverage", args.crispr_coverage),
+    ]
+
+    for param_name, param_value in feature_params:
+        if param_value is not None and not (0.0 <= param_value <= 1.0):
+            errors.append(f"{param_name} must be between 0.0 and 1.0")
 
     if args.threads < 0:
         errors.append("Thread count must be non-negative")
@@ -468,6 +542,63 @@ def args_to_config(args: argparse.Namespace) -> PipelineConfig:
         "max_spacer_length": spacer_max,
     }
 
+    # Build clustering overrides dictionary
+    clustering_overrides = {}
+
+    # Protein overrides
+    if args.protein_identity or args.protein_coverage:
+        clustering_overrides["P"] = {}
+        if args.protein_identity:
+            clustering_overrides["P"]["identity"] = args.protein_identity
+        if args.protein_coverage:
+            clustering_overrides["P"]["coverage"] = args.protein_coverage
+
+    # Intergenic overrides
+    if args.intergenic_identity or args.intergenic_coverage:
+        clustering_overrides["I"] = {}
+        if args.intergenic_identity:
+            clustering_overrides["I"]["identity"] = args.intergenic_identity
+        if args.intergenic_coverage:
+            clustering_overrides["I"]["coverage"] = args.intergenic_coverage
+
+    # tRNA overrides
+    if args.trna_identity or args.trna_coverage:
+        clustering_overrides["T"] = {}
+        if args.trna_identity:
+            clustering_overrides["T"]["identity"] = args.trna_identity
+        if args.trna_coverage:
+            clustering_overrides["T"]["coverage"] = args.trna_coverage
+
+    # rRNA overrides
+    if args.rrna_identity or args.rrna_coverage:
+        clustering_overrides["R"] = {}
+        if args.rrna_identity:
+            clustering_overrides["R"]["identity"] = args.rrna_identity
+        if args.rrna_coverage:
+            clustering_overrides["R"]["coverage"] = args.rrna_coverage
+
+    # CRISPR overrides
+    if args.crispr_identity or args.crispr_coverage:
+        clustering_overrides["C"] = {}
+        if args.crispr_identity:
+            clustering_overrides["C"]["identity"] = args.crispr_identity
+        if args.crispr_coverage:
+            clustering_overrides["C"]["coverage"] = args.crispr_coverage
+
+    # Apply global overrides to all feature types if no specific override set
+    if args.clustering_identity or args.clustering_coverage:
+        for feature_type in ["P", "I", "T", "R", "C"]:
+            if feature_type not in clustering_overrides:
+                clustering_overrides[feature_type] = {}
+            if args.clustering_identity:
+                clustering_overrides[feature_type].setdefault(
+                    "identity", args.clustering_identity
+                )
+            if args.clustering_coverage:
+                clustering_overrides[feature_type].setdefault(
+                    "coverage", args.clustering_coverage
+                )
+
     # Create configuration
     config = PipelineConfig(
         genome_dir=args.genome_dir,
@@ -494,6 +625,7 @@ def args_to_config(args: argparse.Namespace) -> PipelineConfig:
         core_threshold=args.core_threshold,
         cloud_threshold=args.cloud_threshold,
         min_intergenic_length=args.min_intergenic_length,
+        clustering_overrides=clustering_overrides,
     )
 
     return config

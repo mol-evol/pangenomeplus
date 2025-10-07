@@ -112,10 +112,13 @@ class PipelineConfig:
     # UI options
     playful_mode: bool = True
 
-    # Pangenome classification thresholds (new)
+    # Pangenome classification thresholds
     core_threshold: float = 0.95
     cloud_threshold: float = 0.15
     min_intergenic_length: int = 50
+
+    # Clustering parameter overrides (feature-specific)
+    clustering_overrides: Dict[str, Dict[str, float]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """Initialize default parameters if not provided."""
@@ -534,6 +537,9 @@ def run_clustering_stage(
         logger.info(f"Clustering {len(features)} {feature_name} features")
 
         try:
+            # Get feature-specific clustering overrides if provided
+            clustering_overrides = config.clustering_overrides.get(feature_type, None)
+
             # Run clustering for this feature type
             compact_to_family, family_stats = cluster_features_by_type(
                 features=features,
@@ -543,6 +549,7 @@ def run_clustering_stage(
                 total_genomes=total_genomes,
                 cloud_threshold=config.cloud_threshold,
                 core_threshold=config.core_threshold,
+                clustering_overrides=clustering_overrides,
             )
 
             # Store both assignments and stats

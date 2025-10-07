@@ -61,11 +61,15 @@ class FamilyStats:
     classification: str  # "core", "accessory", "cloud", "singleton"
 
 
-def get_clustering_params(feature_type: str) -> ClusteringParams:
+def get_clustering_params(
+    feature_type: str, overrides: Optional[Dict[str, float]] = None
+) -> ClusteringParams:
     """Get optimized clustering parameters for feature type.
 
     Args:
         feature_type: Feature type ("P", "I", "T", "R", "C")
+        overrides: Optional dict with custom parameter values
+                   (e.g., {"identity": 0.9, "coverage": 0.85})
 
     Returns:
         ClusteringParams with optimized settings
@@ -99,7 +103,20 @@ def get_clustering_params(feature_type: str) -> ClusteringParams:
     if feature_type not in params_map:
         raise ClusteringError(f"Invalid feature type: {feature_type}")
 
-    return params_map[feature_type]
+    params = params_map[feature_type]
+
+    # Apply overrides if provided
+    if overrides:
+        if "identity" in overrides:
+            params.min_seq_id = overrides["identity"]
+        if "coverage" in overrides:
+            params.coverage = overrides["coverage"]
+        if "sensitivity" in overrides:
+            params.sensitivity = overrides["sensitivity"]
+        if "max_seqs" in overrides:
+            params.max_seqs = int(overrides["max_seqs"])
+
+    return params
 
 
 def create_feature_fasta(
@@ -462,6 +479,7 @@ def cluster_features_by_type(
     total_genomes: int,
     cloud_threshold: float = 0.15,
     core_threshold: float = 0.95,
+    clustering_overrides: Optional[Dict[str, float]] = None,
 ) -> Tuple[Dict[str, str], Dict[str, FamilyStats]]:
     """Cluster features of specific type and assign families.
 
@@ -471,6 +489,9 @@ def cluster_features_by_type(
         output_dir: Output directory for intermediate files
         id_manager: CompactIDManager instance
         total_genomes: Total number of genomes for classification
+        cloud_threshold: Threshold for cloud families (default: 0.15)
+        core_threshold: Threshold for core families (default: 0.95)
+        clustering_overrides: Optional custom clustering parameters
 
     Returns:
         Tuple of (compact_id -> family_id, family_id -> FamilyStats)
@@ -488,8 +509,8 @@ def cluster_features_by_type(
     # Determine if bidirectional clustering is needed
     bidirectional = feature_type in {"I", "C"}  # Intergenic and CRISPR
 
-    # Get clustering parameters
-    params = get_clustering_params(feature_type)
+    # Get clustering parameters with optional overrides
+    params = get_clustering_params(feature_type, overrides=clustering_overrides)
 
     # Create FASTA file
     fasta_file = os.path.join(type_output_dir, f"sequences_{feature_type}.fasta")
